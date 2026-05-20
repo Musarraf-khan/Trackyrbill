@@ -1,0 +1,2938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Responsive Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+<style>
+body {
+    min-height: 100vh;
+    transition: 0.3s ease;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+body.dark-mode  { background-color: #0f172a; color: #f1f5f9; }
+body.light-mode { background-color: #f1f5f9; color: #1e293b; }
+
+.glass { border-radius: 16px; transition: 0.3s ease; }
+body.dark-mode  .glass { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .glass { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+body.dark-mode  .text-muted { color: #cbd5e1; }
+
+.sidebar { width: 250px; transition: 0.3s ease; }
+body.dark-mode  .sidebar { background-color: #111827; border-right: 2px solid #374151; }
+body.light-mode .sidebar { background-color: #ffffff; border-right: 2px solid #c7c9ce; }
+
+.btn-sidebar { border-radius: 50px; transition: 0.3s ease; text-align: left; }
+body.dark-mode  .btn-sidebar { background-color: #1f2937; color: #f1f5f9; border: 1px solid #374151; }
+body.dark-mode  .btn-sidebar:hover { background-color: #374151; }
+body.light-mode .btn-sidebar { background-color: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0; }
+body.light-mode .btn-sidebar:hover { background-color: #e2e8f0; }
+
+.topbar { transition: 0.3s ease; }
+body.dark-mode  .topbar { background-color: #111827; }
+body.light-mode .topbar { background-color: #ffffff; }
+body.dark-mode  .btn-outline-light { border-color: #f1f5f9; color: #f1f5f9; }
+body.light-mode .btn-outline-light { border-color: #1e293b; color: #1e293b; }
+
+.main-content { margin-left: 250px; padding: 40px 30px; }
+@media (max-width: 991.98px) {
+    .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
+}
+canvas { max-width: 100%; }
+
+/* ── Expenses Modal ── */
+.modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1055;
+    background: rgba(0,0,0,0.65);
+    align-items: center; justify-content: center; padding: 1rem;
+    /* backdrop-filter removed — on mobile it creates a stacking context
+       that swallows touch/pointer events on child inputs */
+}
+.modal-overlay.open { display: flex; animation: fadeOverlay 0.2s ease; }
+@keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
+
+.exp-modal {
+    width: 100%; max-width: 600px; border-radius: 20px;
+    position: relative; isolation: isolate;
+    animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    max-height: 90vh; display: flex; flex-direction: column;
+    overflow: hidden;
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(28px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+body.dark-mode  .exp-modal { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .exp-modal { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+
+/* Modal tab bar */
+.modal-tabs {
+    display: flex; border-bottom: 1px solid transparent;
+    flex-shrink: 0; padding: 1.25rem 1.5rem 0;
+}
+body.dark-mode  .modal-tabs { border-color: #334155; }
+body.light-mode .modal-tabs { border-color: #e2e8f0; }
+
+.modal-tab {
+    padding: 0.55rem 1.1rem; font-size: 0.88rem; font-weight: 600;
+    border: none; background: none; cursor: pointer;
+    border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+    border-radius: 0;
+}
+body.dark-mode  .modal-tab { color: #64748b; }
+body.light-mode .modal-tab { color: #94a3b8; }
+.modal-tab.active { border-bottom-color: #3b82f6; color: #3b82f6; }
+
+.modal-close-btn {
+    margin-left: auto; background: none; border: none;
+    font-size: 1.3rem; cursor: pointer; padding: 2px 8px;
+    border-radius: 8px; line-height: 1; transition: background 0.2s;
+    align-self: center;
+}
+body.dark-mode  .modal-close-btn { color: #64748b; }
+body.dark-mode  .modal-close-btn:hover { background: #334155; color: #f1f5f9; }
+body.light-mode .modal-close-btn { color: #94a3b8; }
+body.light-mode .modal-close-btn:hover { background: #f1f5f9; color: #1e293b; }
+
+.modal-body-scroll { overflow-y: auto; padding: 1.5rem 1.5rem 2rem; flex: 1; }
+
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* History list */
+.exp-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.exp-item {
+    display: flex; align-items: center; gap: 0.9rem;
+    padding: 0.85rem 1rem; border-radius: 12px;
+    transition: background 0.15s;
+}
+body.dark-mode  .exp-item { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .exp-item { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+.exp-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.exp-info { flex: 1; min-width: 0; }
+.exp-title { font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-meta  { font-size: 0.75rem; margin-top: 1px; }
+body.dark-mode  .exp-meta { color: #64748b; }
+body.light-mode .exp-meta { color: #94a3b8; }
+.exp-amount { font-weight: 700; font-size: 0.95rem; color: #ef4444; flex-shrink: 0; }
+
+.empty-state { text-align: center; padding: 2.5rem 1rem; }
+.empty-state i { font-size: 2.5rem; opacity: 0.25; margin-bottom: 0.75rem; display: block; }
+.empty-state p { font-size: 0.85rem; opacity: 0.45; }
+
+/* Add Expense form */
+.form-label-sm {
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; margin-bottom: 0.35rem; display: block;
+}
+body.dark-mode  .form-label-sm { color: #64748b; }
+body.light-mode .form-label-sm { color: #94a3b8; }
+
+.exp-input, .exp-select, .exp-textarea {
+    width: 100%; border-radius: 10px; padding: 0.65rem 0.9rem;
+    font-size: 0.9rem; border: 1.5px solid transparent;
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    font-family: inherit;
+}
+body.dark-mode  .exp-input, body.dark-mode  .exp-select, body.dark-mode  .exp-textarea
+    { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+body.dark-mode  .exp-input:focus, body.dark-mode  .exp-select:focus, body.dark-mode  .exp-textarea:focus
+    { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+body.light-mode .exp-input, body.light-mode .exp-select, body.light-mode .exp-textarea
+    { background: #f8fafc; border-color: #e2e8f0; color: #1e293b; }
+body.light-mode .exp-input:focus, body.light-mode .exp-select:focus, body.light-mode .exp-textarea:focus
+    { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); background: #fff; }
+
+.exp-input::placeholder, .exp-textarea::placeholder { color: #64748b; }
+
+.amount-wrap { position: relative; }
+.amount-sym  {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-weight: 700; font-size: 0.9rem; pointer-events: none;
+}
+body.dark-mode  .amount-sym { color: #475569; }
+body.light-mode .amount-sym { color: #94a3b8; }
+.amount-wrap .exp-input { padding-left: 1.9rem; }
+
+.btn-submit-exp {
+    width: 100%; padding: 0.75rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer; margin-top: 0.25rem;
+    background: #ef4444; color: #fff; box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-submit-exp:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(239,68,68,0.4); }
+.btn-submit-exp:active { transform: translateY(0); }
+
+.err-msg { color: #ef4444; font-size: 0.8rem; margin-top: 0.6rem; display: none; }
+.err-msg i { margin-right: 4px; }
+
+/* ── Expense item delete on hover ── */
+.exp-item { position: relative; }
+.exp-item .del-btn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+    color: #ef4444; border-radius: 8px; padding: 3px 9px;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    opacity: 0; transition: opacity 0.18s, background 0.18s;
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+}
+.exp-item:hover .del-btn { opacity: 1; }
+.exp-item .del-btn:hover { background: rgba(239,68,68,0.2); }
+.exp-item:hover .exp-amount { opacity: 0; }
+.exp-amount { transition: opacity 0.18s; }
+
+/* ── Toast notification ── */
+.toast-notif {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    z-index: 9999; padding: 0.75rem 1.1rem;
+    border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+    display: flex; align-items: center; gap: 0.6rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1);
+    max-width: 320px;
+}
+.toast-notif.success { background: #16a34a; color: #fff; }
+.toast-notif.error   { background: #dc2626; color: #fff; }
+.toast-notif.info    { background: #3b82f6; color: #fff; }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Profile Modal ── */
+.profile-modal {
+    width: 100%; max-width: 480px; border-radius: 20px;
+    position: relative; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+}
+body.dark-mode  .profile-modal { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .profile-modal { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+
+/* Avatar */
+.avatar-wrap {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.5rem; flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+}
+.avatar-wrap svg { width: 46px; height: 46px; color: #fff; }
+
+.profile-name {
+    font-size: 1.1rem; font-weight: 700; text-align: center;
+}
+.profile-email-tag {
+    font-size: 0.78rem; text-align: center; margin-bottom: 1.5rem;
+}
+body.dark-mode  .profile-email-tag { color: #64748b; }
+body.light-mode .profile-email-tag { color: #94a3b8; }
+
+/* Section headers */
+.section-head {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; margin-bottom: 0.85rem; padding-bottom: 0.5rem;
+    border-bottom: 1px solid transparent;
+}
+body.dark-mode  .section-head { color: #475569; border-color: #1e3a5f40; }
+body.light-mode .section-head { color: #94a3b8; border-color: #e2e8f0; }
+
+/* Profile inputs */
+.prof-input {
+    width: 100%; border-radius: 10px; padding: 0.65rem 0.9rem;
+    font-size: 0.9rem; border: 1.5px solid transparent;
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    font-family: inherit;
+}
+body.dark-mode  .prof-input { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+body.dark-mode  .prof-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+body.light-mode .prof-input { background: #f8fafc; border-color: #e2e8f0; color: #1e293b; }
+body.light-mode .prof-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); background:#fff; }
+.prof-input::placeholder { color: #64748b; }
+.prof-input[readonly] { opacity: 0.6; cursor: not-allowed; }
+
+/* pw-wrap for show/hide */
+.pw-wrap { position: relative; }
+.pw-wrap .prof-input { padding-right: 2.6rem; }
+.pw-eye {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 2px 6px;
+    color: #64748b; transition: color 0.2s;
+}
+.pw-eye:hover { color: #3b82f6; }
+
+/* Save button */
+.btn-save-pw {
+    width: 100%; padding: 0.72rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer; margin-top: 0.2rem;
+    background: #3b82f6; color: #fff; box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-save-pw:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
+.btn-save-pw:active { transform: translateY(0); }
+
+.prof-err { color: #ef4444; font-size: 0.8rem; margin-top: 0.5rem; display: none; align-items: center; gap: 4px; }
+
+
+/* ── Chart dropdowns ── */
+.chart-toolbar {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 0.85rem;
+    flex-wrap: wrap; gap: 0.5rem;
+}
+.chart-toolbar-title {
+    font-size: 0.78rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 0.85rem;
+}
+/* body.dark-mode  .chart-toolbar-title { color: #64748b; } */
+body.dark-mode  .chart-toolbar-title { color: #f1f5f9; }
+/* body.light-mode .chart-toolbar-title { color: #94a3b8; } */
+body.light-mode .chart-toolbar-title { color: #1e293b; }
+
+.chart-select {
+    border-radius: 8px; padding: 0.32rem 2rem 0.32rem 0.7rem;
+    font-size: 0.82rem; font-weight: 600; border: 1.5px solid transparent;
+    outline: none; cursor: pointer; font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.55rem center;
+}
+body.dark-mode  .chart-select { background-color: #0f172a; border-color: #334155; color: #f1f5f9; }
+body.dark-mode  .chart-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
+body.light-mode .chart-select { background-color: #f1f5f9; border-color: #e2e8f0; color: #1e293b; }
+body.light-mode .chart-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+
+
+/* ── Equal-height chart cards ── */
+.chart-canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 300px;
+}
+.chart-canvas-wrap canvas {
+    position: absolute !important;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+
+/* ── Scan Receipt drop zone ── */
+.scan-dropzone {
+    border: 2px dashed transparent;
+    border-radius: 16px; padding: 2rem 1rem;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+body.dark-mode  .scan-dropzone { border-color: #334155; background: #0f172a; }
+body.light-mode .scan-dropzone { border-color: #cbd5e1; background: #f8fafc; }
+body.dark-mode  .scan-dropzone:hover { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
+body.light-mode .scan-dropzone:hover { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+
+.scan-dropzone .scan-icon { font-size: 2.8rem; opacity: 0.55; display: block; margin-bottom: 0.75rem; }
+.scan-dropzone h5 { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+.scan-dropzone p  { font-size: 0.82rem; opacity: 0.5; margin-bottom: 1.25rem; }
+
+.scan-file-row {
+    display: flex; align-items: center; gap: 0;
+    border-radius: 10px; overflow: hidden;
+    border: 1.5px solid transparent; max-width: 420px; margin: 0 auto 1rem;
+}
+body.dark-mode  .scan-file-row { border-color: #334155; }
+body.light-mode .scan-file-row { border-color: #e2e8f0; }
+
+.scan-file-btn {
+    padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 600;
+    border: none; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.2s;
+}
+body.dark-mode  .scan-file-btn { background: #1e293b; color: #f1f5f9; }
+body.dark-mode  .scan-file-btn:hover { background: #334155; }
+body.light-mode .scan-file-btn { background: #e2e8f0; color: #1e293b; }
+body.light-mode .scan-file-btn:hover { background: #cbd5e1; }
+
+.scan-file-name {
+    flex: 1; padding: 0.6rem 0.9rem; font-size: 0.82rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border: none; outline: none; background: transparent;
+}
+body.dark-mode  .scan-file-name { color: #64748b; }
+body.light-mode .scan-file-name { color: #94a3b8; }
+
+.btn-scan {
+    width: 100%; max-width: 420px; margin: 0 auto;
+    display: block; padding: 0.75rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer;
+    background: #3b82f6; color: #fff;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-scan:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.45); }
+.btn-scan:active { transform: translateY(0); }
+
+/* ── Scan result preview ── */
+.scan-result {
+    display: none; border-radius: 12px; padding: 1rem 1.1rem;
+    margin-top: 1rem; font-size: 0.88rem;
+}
+body.dark-mode  .scan-result { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .scan-result { background: #f1f5f9; border: 1px solid #e2e8f0; }
+.scan-result .sr-row { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+.scan-result .sr-label { font-weight: 600; opacity: 0.6; }
+.scan-result .sr-val   { font-weight: 700; }
+
+/* ══ Redesigned Profile Modal ══ */
+/* Remove old single-section layout — use tabs like the images show */
+.prof-modal-inner {
+    width: 100%; max-width: 500px; border-radius: 20px;
+    position: relative; isolation: isolate;
+    animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+}
+body.dark-mode  .prof-modal-inner { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .prof-modal-inner { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+
+/* Avatar ring */
+.prof-avatar-ring {
+    width: 88px; height: 88px; border-radius: 50%;
+    margin: 0 auto 0.6rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+body.dark-mode  .prof-avatar-ring { background: #334155; }
+body.light-mode .prof-avatar-ring { background: #e2e8f0; }
+.prof-avatar-ring svg { width: 56px; height: 56px; }
+body.dark-mode  .prof-avatar-ring svg { color: #94a3b8; }
+body.light-mode .prof-avatar-ring svg { color: #64748b; }
+
+/* Inline label for profile fields */
+.prof-field-label {
+    font-size: 0.78rem; font-weight: 600; margin-bottom: 0.35rem; display: block;
+}
+body.dark-mode  .prof-field-label { color: #64748b; }
+body.light-mode .prof-field-label { color: #94a3b8; }
+
+/* Saving goal prefix */
+.goal-wrap { position: relative; }
+.goal-sym {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-weight: 700; font-size: 0.9rem; pointer-events: none;
+}
+body.dark-mode  .goal-sym { color: #475569; }
+body.light-mode .goal-sym { color: #94a3b8; }
+.goal-wrap .prof-input { padding-left: 1.9rem; }
+
+/* Update button full-width blue */
+.btn-prof-save {
+    width: 100%; padding: 0.75rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer;
+    background: #3b82f6; color: #fff;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-prof-save:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
+.btn-prof-save:active { transform: translateY(0); }
+
+
+/* ══ Mobile sidebar fixes ══ */
+.mobile-sidebar-header {
+    display: flex; align-items: center; padding: 1rem 1.25rem;
+    border-bottom: 1px solid transparent;
+}
+body.dark-mode  .mobile-sidebar-header { border-color: #1f2937; }
+body.light-mode .mobile-sidebar-header { border-color: #e2e8f0; }
+
+.mobile-sidebar-title {
+    font-size: 1rem; font-weight: 700; margin: 0;
+}
+body.dark-mode  .mobile-sidebar-title { color: #f1f5f9 !important; }
+body.light-mode .mobile-sidebar-title { color: #1e293b !important; }
+
+.mobile-sidebar-close {
+    margin-left: auto; background: none; border: none;
+    cursor: pointer; padding: 6px 8px; border-radius: 8px;
+    font-size: 1.1rem; line-height: 1; transition: background 0.2s;
+}
+body.dark-mode  .mobile-sidebar-close { color: #f1f5f9 !important; }
+body.dark-mode  .mobile-sidebar-close:hover { background: #374151; }
+body.light-mode .mobile-sidebar-close { color: #1e293b !important; }
+body.light-mode .mobile-sidebar-close:hover { background: #f1f5f9; }
+
+.mobile-sidebar-divider {
+    border-color: transparent;
+}
+body.dark-mode  .mobile-sidebar-divider { border-color: #1f2937; }
+body.light-mode .mobile-sidebar-divider { border-color: #e2e8f0; }
+
+/* ══ Floating PAY button ══ */
+.fab-pay {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    z-index: 1039;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    color: #fff; font-size: 1.35rem;
+    box-shadow: 0 6px 24px rgba(99,102,241,0.55), 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform 0.18s, box-shadow 0.18s, opacity 0.2s;
+    gap: 2px;
+}
+.fab-pay.fab-hidden { opacity: 0; pointer-events: none; }
+.fab-pay:hover  { transform: translateX(-50%) scale(1.09); box-shadow: 0 10px 32px rgba(99,102,241,0.65); }
+.fab-pay:active { transform: translateX(-50%) scale(0.96); }
+.fab-pay-label  { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1; }
+
+/* ══ Pay Modal ══ */
+.pay-modal {
+    width: 100%; max-width: 480px; border-radius: 20px;
+    position: relative; isolation: isolate;
+    animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+}
+body.dark-mode  .pay-modal { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .pay-modal { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+
+.pay-icon-wrap { text-align: center; margin-bottom: 1.25rem; padding-top: 0.5rem; }
+.pay-icon-circle {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(99,102,241,0.12); color: #6366f1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 0.75rem;
+}
+.pay-modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.pay-modal-sub   { font-size: 0.8rem; opacity: 0.5; margin: 0; }
+
+.btn-pay-initiate {
+    width: 100%; padding: 0.8rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer; margin-top: 0.5rem;
+    background: #6366f1; color: #fff;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-pay-initiate:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
+.btn-pay-initiate:active { transform: translateY(0); }
+
+/* QR scanner box */
+.qr-scan-area { text-align: center; }
+.qr-scanner-box {
+    position: relative; width: 220px; height: 220px; margin: 0 auto;
+    border-radius: 12px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+}
+body.dark-mode  .qr-scanner-box { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .qr-scanner-box { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+.qr-corner {
+    position: absolute; width: 22px; height: 22px;
+    border-color: #6366f1; border-style: solid;
+}
+.qr-corner.tl { top:8px; left:8px; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+.qr-corner.tr { top:8px; right:8px; border-width:3px 3px 0 0; border-radius:0 4px 0 0; }
+.qr-corner.bl { bottom:8px; left:8px; border-width:0 0 3px 3px; border-radius:0 0 0 4px; }
+.qr-corner.br { bottom:8px; right:8px; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+
+.qr-scan-line {
+    position: absolute; left: 12px; right: 12px; height: 2px;
+    background: linear-gradient(90deg, transparent, #6366f1, transparent);
+    animation: qrScanAnim 2s ease-in-out infinite; top: 50%;
+}
+@keyframes qrScanAnim {
+    0%   { top: 15%; opacity: 1; }
+    50%  { top: 85%; opacity: 1; }
+    100% { top: 15%; opacity: 1; }
+}
+.qr-placeholder-text { position: relative; z-index: 1; text-align: center; }
+
+.qr-detected-badge {
+    border-radius: 10px; padding: 0.65rem 1rem;
+    font-size: 0.85rem; font-weight: 600; text-align: center;
+    margin-bottom: 0.5rem;
+}
+body.dark-mode  .qr-detected-badge { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); }
+body.light-mode .qr-detected-badge { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+
+/* ══ Payment confirmation dialog ══ */
+.pay-confirm-dialog {
+    width: 100%; max-width: 340px; border-radius: 20px; text-align: center;
+    padding: 2rem 1.5rem; animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+body.dark-mode  .pay-confirm-dialog { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+body.light-mode .pay-confirm-dialog { background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; }
+
+.pay-confirm-icon { font-size: 2.8rem; color: #f59e0b; margin-bottom: 0.75rem; }
+.pay-confirm-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+.pay-confirm-sub   { font-size: 0.82rem; opacity: 0.5; margin-bottom: 1.5rem; }
+.pay-confirm-btns  { display: flex; gap: 0.75rem; }
+
+.btn-confirm-no, .btn-confirm-yes {
+    flex: 1; padding: 0.75rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+}
+.btn-confirm-no  { background: rgba(239,68,68,0.12); color: #ef4444; }
+.btn-confirm-yes { background: #10b981; color: #fff; box-shadow: 0 4px 14px rgba(16,185,129,0.3); }
+.btn-confirm-no:hover  { opacity: 0.85; }
+.btn-confirm-yes:hover { transform: translateY(-1px); }
+
+
+/* ── Logo ── */
+.site-logo {
+    display: block;
+    width: 160px;
+    height: auto;
+    margin: 0 auto 0.5rem;
+}
+/* dark mode shows white logo, light mode shows dark logo */
+.logo-dark-mode  { display: block; }
+.logo-light-mode { display: none;  }
+body.light-mode .logo-dark-mode  { display: none;  }
+body.light-mode .logo-light-mode { display: block; }
+
+/* Mobile topbar logo */
+.topbar-logo {
+    height: 28px;
+    width: auto;
+}
+
+
+/* ══ Pending Payments card (on dashboard) ══ */
+.pending-section { }
+.pending-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.9rem;
+}
+.pending-title {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+}
+body.dark-mode  .pending-title { color: #f1f5f9; }
+body.light-mode .pending-title { color: #1e293b; }
+
+.btn-add-pending {
+    padding: 0.35rem 0.9rem; border: none; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    background: rgba(99,102,241,0.12); color: #6366f1;
+    transition: background 0.2s;
+}
+.btn-add-pending:hover { background: rgba(99,102,241,0.22); }
+
+.pending-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.pending-item {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.75rem 1rem; border-radius: 12px; cursor: pointer;
+    transition: background 0.15s; position: relative;
+}
+body.dark-mode  .pending-item { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .pending-item { background: #f8fafc; border: 1px solid #e2e8f0; }
+body.dark-mode  .pending-item:hover { background: #1e293b; }
+body.light-mode .pending-item:hover { background: #f1f5f9; }
+
+.pending-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    background: rgba(99,102,241,0.12); color: #6366f1;
+}
+.pending-icon.done { background: rgba(16,185,129,0.12); color: #10b981; }
+
+.pending-info { flex: 1; min-width: 0; }
+.pending-name { font-weight: 600; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pending-meta { font-size: 0.73rem; margin-top: 1px; }
+body.dark-mode  .pending-meta { color: #64748b; }
+body.light-mode .pending-meta { color: #94a3b8; }
+
+.pending-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.pending-amount { font-weight: 700; font-size: 0.9rem; color: #6366f1; }
+.pending-del-btn {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+    cursor: pointer; padding: 4px 8px; border-radius: 7px;
+    font-size: 0.75rem; color: #ef4444;
+    transition: background 0.15s, opacity 0.15s;
+    /* desktop: hidden until hover */
+    opacity: 0;
+}
+.pending-item:hover .pending-del-btn { opacity: 1; background: rgba(239,68,68,0.15); }
+/* mobile: always visible */
+@media (max-width: 991.98px) {
+    .pending-del-btn { opacity: 1 !important; }
+}
+
+.pending-empty { text-align: center; padding: 1.5rem 1rem; }
+.pending-empty i { font-size: 2rem; opacity: 0.2; display: block; margin-bottom: 0.5rem; }
+.pending-empty p { font-size: 0.82rem; opacity: 0.4; margin: 0; }
+
+/* ── Add pending payment form (inline collapsible) ── */
+.pending-form-wrap {
+    border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem;
+    display: none;
+}
+.pending-form-wrap.open { display: block; }
+body.dark-mode  .pending-form-wrap { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .pending-form-wrap { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+/* ══ Redesigned Pay Modal ══ */
+/* Single form: UPI ID (optional) + amount + category + date + helper + two action buttons */
+.pay-helper-box {
+    border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem;
+}
+body.dark-mode  .pay-helper-box { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .pay-helper-box { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+.pay-helper-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.84rem; padding: 0.25rem 0;
+}
+.pay-helper-label { font-weight: 600; opacity: 0.55; font-size: 0.75rem; }
+.pay-helper-val   { font-weight: 700; font-size: 0.88rem; }
+.pay-copy-btn {
+    padding: 2px 8px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 0.72rem; font-weight: 700; margin-left: 0.5rem;
+    background: rgba(99,102,241,0.12); color: #6366f1;
+    transition: background 0.15s;
+}
+.pay-copy-btn:hover { background: rgba(99,102,241,0.22); }
+.pay-copy-btn.copied { background: rgba(16,185,129,0.15); color: #10b981; }
+
+.pay-action-row { display: flex; gap: 0.65rem; margin-top: 0.75rem; }
+.btn-open-upi {
+    flex: 1; padding: 0.75rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    background: #6366f1; color: #fff;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-open-upi:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+.btn-scan-qr {
+    flex: 1; padding: 0.75rem; border: 1.5px solid transparent; border-radius: 10px;
+    font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+body.dark-mode  .btn-scan-qr { background: #334155; color: #f1f5f9; border-color: #475569; }
+body.dark-mode  .btn-scan-qr:hover { background: #475569; }
+body.light-mode .btn-scan-qr { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
+body.light-mode .btn-scan-qr:hover { background: #e2e8f0; }
+
+/* Animation on total expense update */
+.highlight-update {
+    animation: highlightFlash 0.8s ease;
+}
+
+@keyframes highlightFlash {
+    0%   { transform: scale(1); background-color: transparent; }
+    30%  { transform: scale(1.1); background-color: rgba(34,197,94,0.2); }
+    100% { transform: scale(1); background-color: transparent; }
+}
+
+/* ── Smart Insights ── */
+body.dark-mode  .insight-section-title { color: #f1f5f9; }
+body.light-mode .insight-section-title { color: #1e293b; }
+
+.insight-card {
+    border-radius: 14px; padding: 1.1rem 1rem;
+    height: 100%; display: flex; flex-direction: column; gap: 0.45rem;
+    transition: transform 0.15s;
+}
+body.dark-mode  .insight-card { background: #0f172a; border: 1px solid #334155; }
+body.light-mode .insight-card { background: #f8fafc; border: 1px solid #e2e8f0; }
+.insight-card:hover { transform: translateY(-2px); }
+
+.insight-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0; margin-bottom: 0.2rem;
+}
+.insight-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+}
+body.dark-mode  .insight-label { color: #64748b; }
+body.light-mode .insight-label { color: #94a3b8; }
+
+.insight-value {
+    font-size: 1.35rem; font-weight: 800; line-height: 1.1;
+}
+body.dark-mode  .insight-value { color: #f1f5f9; }
+body.light-mode .insight-value { color: #1e293b; }
+
+.insight-sub {
+    font-size: 0.72rem; opacity: 0.45; margin-top: 0.1rem;
+}
+
+/* Insight card 4 — highlight text style */
+.insight-card-highlight {}
+.insight-highlight-text {
+    font-size: 0.95rem; font-weight: 700; line-height: 1.4;
+    margin-top: 0.2rem;
+}
+body.dark-mode  .insight-red { color: #fca5a5; }
+body.light-mode .insight-red { color: #dc2626; }
+
+body.dark-mode  .insight-green { color: #86efac; }
+body.light-mode .insight-green { color: #16a34a; }
+
+/* Light Mode */
+.insight-green {
+    color: #16a34a !important;
+}
+
+/* Dark Mode */
+.dark-mode .insight-green {
+    color: #86efac !important;
+}
+
+</style>
+</head>
+
+<body class="dark-mode">
+
+<!-- Mobile topbar -->
+<nav class="navbar topbar d-lg-none px-3">
+    <button class="btn btn-outline-light" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+        <i class="bi bi-list fs-4"></i>
+    </button>
+    <span class="mx-auto">
+        <img class="topbar-logo logo-dark-mode"
+             src="/static/images/logo_dark.png" alt="TrackyrBill" />
+        <img class="topbar-logo logo-light-mode"
+             src="/static/images/logo_light.png" alt="TrackyrBill" />
+    </span>
+    <button class="btn btn-outline-light" onclick="toggleTheme()">
+        <i id="themeIconMobile" class="bi bi-moon-fill"></i>
+    </button>
+</nav>
+
+<!-- Desktop sidebar -->
+<nav class="sidebar position-fixed top-0 start-0 p-4 vh-100 d-none d-lg-flex flex-column">
+    <div class="text-center mb-3">
+        <!-- White logo for dark mode -->
+        <img class="site-logo logo-dark-mode"
+             src="/static/images/logo_dark.png" alt="TrackyrBill" />
+        <!-- Dark logo for light mode -->
+        <img class="site-logo logo-light-mode"
+             src="/static/images/logo_light.png" alt="TrackyrBill" />
+        <div class="fs-6 fw-semibold mt-1" style="opacity:0.6; font-size:0.78rem !important; letter-spacing:0.03em;">Dashboard</div>
+    </div>
+    <hr>
+    <div class="d-flex flex-column gap-3 mb-auto">
+        <button onclick="openProfileModal()" class="btn btn-sidebar rounded-pill py-2">
+            <i class="bi bi-person me-2"></i> Profile
+        </button>
+        <button onclick="toggleTheme()" class="btn btn-sidebar rounded-pill py-2">
+            <i id="themeIcon" class="bi bi-moon-fill me-2"></i> Toggle Theme
+        </button>
+        <button onclick="openExpModal()" class="btn btn-sidebar rounded-pill py-2">
+            <i class="bi bi-wallet2 me-2 text-danger"></i> Expenses
+        </button>
+    </div>
+    <hr>
+    <a href="/logout" class="btn btn-sidebar rounded-pill">
+        <i class="bi bi-box-arrow-right me-2"></i> Logout
+    </a>
+</nav>
+
+<!-- Mobile offcanvas sidebar -->
+<div class="offcanvas offcanvas-start sidebar" tabindex="-1" id="mobileSidebar">
+    <div class="offcanvas-header mobile-sidebar-header">
+        <h5 class="offcanvas-title mobile-sidebar-title">Dashboard</h5>
+        <button type="button" class="mobile-sidebar-close" data-bs-dismiss="offcanvas" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column gap-3">
+        <div class="d-flex flex-column gap-3 mb-auto">
+            <button onclick="openProfileModal()" class="btn btn-sidebar rounded-pill py-2">
+                <i class="bi bi-person me-2"></i> Profile
+            </button>
+            <button onclick="toggleTheme()" class="btn btn-sidebar rounded-pill py-2">
+                <i class="bi bi-moon-fill me-2"></i> Toggle Theme
+            </button>
+            <button onclick="openExpModal()" class="btn btn-sidebar rounded-pill py-2">
+                <i class="bi bi-wallet2 me-2 text-danger"></i> Expenses
+            </button>
+        </div>
+        <div class="mt-auto">
+            <hr class="mobile-sidebar-divider">
+            <a href="/logout" class="btn btn-sidebar rounded-pill w-100">
+                <i class="bi bi-box-arrow-right me-2"></i> Logout
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main content -->
+<main class="main-content">
+<div class="container-fluid">
+<div class="row g-4">
+
+    <!-- LINE GRAPH — full width -->
+    <div class="col-12">
+        <div class="card border-0 rounded-4 glass shadow">
+            <div class="card-body p-4">
+                <div class="chart-toolbar">
+                    <span class="chart-toolbar-title">
+                        <i class="bi bi-graph-up me-1 text-primary"></i> Monthly Spending Trend
+                    </span>
+                    <select class="chart-select" id="lineChartYear" onchange="updateLineChart()">
+                        <!-- populated by JS -->
+                    </select>
+                </div>
+                <div style="position:relative; height:300px; width:100%;">
+                    <canvas id="myChart3"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Donut (col-4) | Bar (col-4) | Expenditure + Score stacked (col-4) -->
+    <div class="col-md-4 d-flex">
+        <div class="card border-0 rounded-4 glass shadow w-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="chart-toolbar">
+                    <span class="chart-toolbar-title">
+                        <i class="bi bi-pie-chart me-1 text-warning"></i> Category Breakdown
+                    </span>
+                    <select class="chart-select" id="donutChartMonth" onchange="updateDonutChart()">
+                        <option value="all">All</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 d-flex">
+        <div class="card border-0 rounded-4 glass shadow w-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <span class="chart-toolbar-title">
+                        <i class="bi bi-bar-chart-line-fill me-1 text-danger"></i> Weekly Spending
+                    </span>
+                <div class="chart-canvas-wrap">
+                    <canvas id="myChart2"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenditure + Monthly Savings Goal stacked in col-4 -->
+    <div class="col-md-4 d-flex flex-column gap-3">
+        <div class="card border-0 rounded-4 glass shadow" style="flex:1;">
+            <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase small fw-bold">Expenditure</h6>
+                    <h2 class="fw-bold" id="totalExpense">₹0</h2>
+                </div>
+                <div class="d-flex align-items-center justify-content-center border border-primary rounded-circle" style="width:50px;height:50px;">
+                    <i class="bi bi-currency-rupee fs-4 text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 rounded-4 glass shadow" style="flex:1;">
+            <div class="card-body p-4">
+                <!-- <h6 class="text-uppercase small fw-bold">Monthly Savings Goal</h6> -->
+                <h6 class="text-uppercase small fw-bold">Monthly Budget</h6>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <h3 class="fw-bold mb-0" id="savingAmount">₹0k</h3>
+                    <!-- <span class="text-success small fw-semibold" id="savingChange">↑ 0%</span> -->
+                </div>
+                <div class="progress mt-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                    role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" 
+                    style="width: 100%" id="savingProgress"></div>
+                </div>
+                <p class="small mt-2 mb-0" id="savingText">100% of budget reached</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Smart Insights ── -->
+    <div class="col-12">
+        <div class="card border-0 rounded-4 glass shadow">
+            <div class="card-body p-4">
+                <div class="mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-stars text-warning fs-5"></i>
+                    <span style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;" class="insight-section-title">Smart Insights</span>
+                </div>
+                <div class="row g-3">
+
+                    <!-- Card 1: Next Month Expense Prediction -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="insight-card">
+                            <div class="insight-icon" style="background:rgba(99,102,241,0.12); color:#6366f1;">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div class="insight-label">Next Month Prediction</div>
+                            <div class="insight-value" id="insightPrediction">₹—</div>
+                            <div class="insight-sub">Estimated based on trend</div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Daily Spending Forecast -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="insight-card">
+                            <div class="insight-icon" style="background:rgba(34,211,238,0.12); color:#22d3ee;">
+                                <i class="bi bi-calendar-day"></i>
+                            </div>
+                            <div class="insight-label">Daily Spending Forecast</div>
+                            <div class="insight-value" id="insightDaily">₹—</div>
+                            <div class="insight-sub">Average per day this month</div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Next Likely Category -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="insight-card">
+                            <div class="insight-icon" style="background:rgba(245,158,11,0.12); color:#f59e0b;">
+                                <i class="bi bi-tag-fill"></i>
+                            </div>
+                            <div class="insight-label">Next Likely Category</div>
+                            <div class="insight-value" id="insightCategory">—</div>
+                            <div class="insight-sub">Your top spending category</div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Insight text -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="insight-card insight-card-highlight">
+                            <div class="insight-icon" style="background:rgba(239,68,68,0.12); color:#ef4444;">
+                                <i class="bi bi-lightbulb-fill"></i>
+                            </div>
+                            <div class="insight-label">Insight</div>
+                            <div class="insight-highlight-text" id="insightText">
+                                You spent...
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Pending Payments (above expenses section) ── -->
+    <div class="col-12" id="pendingPaymentsSection">
+        <div class="card border-0 rounded-4 glass shadow">
+            <div class="card-body p-4">
+                <div class="pending-header">
+                    <div>
+                        <span class="pending-title"><i class="bi bi-hourglass-split me-1 text-warning"></i> Pending Payments</span>
+                        <div style="font-size:0.72rem; opacity:0.45; margin-top:2px;">Tap to pay · Hover to delete</div>
+                    </div>
+                    <button class="btn-add-pending" onclick="togglePendingForm()">
+                        <i class="bi bi-plus me-1"></i> Add
+                    </button>
+                </div>
+
+                <!-- Add pending form (hidden by default) -->
+                <div class="pending-form-wrap" id="pendingFormWrap">
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-sm">Recipient Name</label>
+                            <input type="text" class="exp-input" id="ppName" placeholder="e.g. Landlord, Zomato…" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-sm">UPI ID / Phone <span style="font-weight:400;text-transform:none;font-size:0.72rem">(optional)</span></label>
+                            <input type="text" class="exp-input" id="ppUpi" placeholder="name@upi or 9876543210@paytm" />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-sm">Amount (₹)</label>
+                            <div class="amount-wrap">
+                                <span class="amount-sym">₹</span>
+                                <input type="number" class="exp-input" id="ppAmount" placeholder="0.00" min="1" step="0.01" />
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-sm">Category</label>
+                            <select class="exp-select" id="ppCategory">
+                                <option value="miscellaneous">Miscellaneous</option>
+                                <option value="food">Food</option>
+                                <option value="transport">Transport</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="health">Health</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-sm">Due Date</label>
+                            <input type="date" class="exp-input" id="ppDate" />
+                        </div>
+                    </div>
+                    <div class="err-msg" id="ppErrBox" style="margin-bottom:0.5rem;">
+                        <i class="bi bi-exclamation-circle"></i><span id="ppErrTxt"></span>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn-add-pending" style="flex:1; padding:0.6rem; border-radius:9px; background:#6366f1; color:#fff;" onclick="addPendingPayment()">
+                            <i class="bi bi-check-lg me-1"></i> Save
+                        </button>
+                        <button class="btn-add-pending" style="padding:0.6rem 1rem; border-radius:9px;" onclick="togglePendingForm()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pending list -->
+                <div class="pending-list" id="pendingList">
+                    <!-- populated by JS -->
+                </div>
+                <div class="pending-empty" id="pendingEmpty">
+                    <i class="bi bi-hourglass"></i>
+                    <p>No pending payments.<br>Add one to track upcoming UPI payments.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+</main>
+
+
+<!-- ════════════════════════════════════════
+     EXPENSES MODAL
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="expModalOverlay">
+    <div class="exp-modal" id="expModal">
+
+        <!-- Tab bar -->
+        <div class="modal-tabs">
+            <button class="modal-tab active" id="tabHistoryBtn" onclick="switchTab('history')">
+                <i class="bi bi-clock-history me-1"></i> History of Expenses
+            </button>
+            <button class="modal-tab" id="tabScanBtn" onclick="switchTab('scan')">
+                <i class="bi bi-camera me-1"></i> Scan Receipt
+            </button>
+            <button class="modal-tab" id="tabAddBtn" onclick="switchTab('add')">
+                <i class="bi bi-plus-circle me-1"></i> Add Expense
+            </button>
+            <button class="modal-close-btn" onclick="closeExpModal()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-body-scroll">
+
+            <!-- HISTORY PANEL -->
+            <div class="tab-panel active" id="panelHistory">
+                <div id="expList" class="exp-list">
+                    <!-- populated by JS -->
+                </div>
+                <div class="empty-state" id="emptyState">
+                    <i class="bi bi-receipt"></i>
+                    <p>No expenses recorded yet.<br>Add your first expense to get started.</p>
+                </div>
+            </div>
+
+            <!-- SCAN RECEIPT PANEL -->
+            <div class="tab-panel" id="panelScan">
+                <div class="scan-dropzone" id="scanDropzone" onclick="document.getElementById('receiptFile').click()">
+                    <i class="bi bi-camera scan-icon"></i>
+                    <h5>Upload Receipt</h5>
+                    <p>Upload a receipt and the AI will automatically detect the purchase and amount.</p>
+
+                    <div class="scan-file-row" onclick="event.stopPropagation()">
+                        <button class="scan-file-btn" onclick="document.getElementById('receiptFile').click()">Choose File</button>
+                        <span class="scan-file-name" id="scanFileName">No file chosen</span>
+                    </div>
+                    <input type="file" id="receiptFile" accept="image/*,.pdf" style="display:none" onchange="onReceiptFileChange(this)" />
+
+                    <button id="scanReceiptBtn" class="btn-scan" onclick="event.stopPropagation(); scanReceipt()">
+                        <i class="bi bi-search me-2"></i> Scan Receipt
+                    </button>
+                </div>
+
+                <!-- Result preview (shown after scan) -->
+                <div class="scan-result" id="scanResult">
+                    <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.6rem; opacity:0.7;">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i> Receipt Detected
+                    </div>
+                    <div class="sr-row"><span class="sr-label">Title</span>    <span class="sr-val" id="srTitle">—</span></div>
+                    <div class="sr-row"><span class="sr-label">Amount</span>   <span class="sr-val" id="srAmount">—</span></div>
+                    <div class="sr-row"><span class="sr-label">Date</span>     <span class="sr-val" id="srDate">—</span></div>
+                    <div class="sr-row"><span class="sr-label">Category</span> <span class="sr-val" id="srCategory">—</span></div>
+                    <button class="btn-submit-exp mt-3" onclick="useScannedExpense()" style="background:#10b981; box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+                        <i class="bi bi-check-lg me-2"></i> Add to Expenses
+                    </button>
+                </div>
+            </div>
+
+            <!-- ADD EXPENSE PANEL -->
+            <div class="tab-panel" id="panelAdd">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label-sm">Title</label>
+                        <input type="text" class="exp-input" id="expTitle" placeholder="e.g. Groceries, Rent…" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label-sm">Amount</label>
+                        <div class="amount-wrap">
+                            <span class="amount-sym">₹</span>
+                            <input type="number" class="exp-input" id="expAmount" placeholder="0.00" min="0" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label-sm">Date</label>
+                        <input type="date" class="exp-input" id="expDate" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label-sm">Category</label>
+                        <select class="exp-select" id="expCategory">
+                            <option value="">Select category</option>
+                            <option value="food">Food</option>
+                            <option value="transport">Transport</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="health">Health</option>
+                            <option value="miscellaneous">Miscellaneous</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label-sm">Payment Method</label>
+                        <select class="exp-select" id="expMethod">
+                            <option value="">Select method</option>
+                            <option value="cash">Cash</option>
+                            <option value="upi">UPI</option>
+                            <option value="card">Card</option>
+                            <option value="netbanking">Net Banking</option>
+                            <option value="wallet">Wallet</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-sm">Note <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem">(optional)</span></label>
+                        <textarea class="exp-textarea" id="expNote" rows="2" placeholder="Any extra details…"></textarea>
+                    </div>
+                </div>
+
+                <div class="err-msg" id="expErrBox">
+                    <i class="bi bi-exclamation-circle"></i><span id="expErrTxt"></span>
+                </div>
+
+                <button class="btn-submit-exp mt-3" onclick="submitExpense()">
+                    <i class="bi bi-plus-lg me-2"></i> Add Expense
+                </button>
+            </div>
+
+        </div><!-- /modal-body-scroll -->
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* ── Theme toggle ── */
+function toggleTheme() {
+    const body = document.body;
+    const isDark = body.classList.contains('dark-mode');
+    body.classList.toggle('dark-mode', !isDark);
+    body.classList.toggle('light-mode', isDark);
+    document.querySelectorAll('#themeIcon, #themeIconMobile').forEach(el => {
+        el.classList.toggle('bi-moon-fill', isDark);
+        el.classList.toggle('bi-sun-fill', !isDark);
+    });
+    updateChartThemes();
+}
+
+/* ── Chart theme colours ── */
+function isDark() { return document.body.classList.contains('dark-mode'); }
+function chartTextColor()  { return isDark() ? '#94a3b8' : '#475569'; }
+function chartGridColor()  { return isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'; }
+
+let lineChart, donutChart, barChart;
+
+/* ── LINE CHART (myChart3) ── */
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx3 = document.getElementById('myChart3');
+    lineChart = new Chart(ctx3, {
+        type: 'line',
+        data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+            datasets: [{
+                label: 'Monthly Spending (₹)',
+                // data: [6500, 5900, 8000, 8100, 5600, 5500, 4000, 4500, 6000, 7000, 7500, 9000],
+                fill: true,
+                backgroundColor: 'rgba(99,102,241,0.12)',
+                borderColor: '#6366f1',
+                pointBackgroundColor: '#6366f1',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                borderWidth: 2.5,
+                tension: 0.45
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: chartTextColor(), font: { size: 12 } } },
+                title: { display: true, text: 'Monthly Spending Trend', color: chartTextColor(), font: { size: 14, weight: '600' } }
+            },
+            scales: {
+                x: { ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } },
+                y: { beginAtZero: true, ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } }
+            }
+        }
+    });
+
+    /* ── DONUT CHART (myChart) ── */
+    const ctx1 = document.getElementById('myChart');
+    donutChart = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Food','Transport','Entertainment','Shopping','Utilities','Others'],
+            datasets: [{
+                label: 'Spend',
+                // data: [12, 9, 6, 5, 2, 3],
+                backgroundColor: ['#6366f1','#22d3ee','#f59e0b','#ef4444','#10b981','#8b5cf6'],
+                borderWidth: 0,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: chartTextColor(), padding: 14, font: { size: 11 } } },
+                // title: { display: true, color: chartTextColor(), font: { size: 13, weight: '600' } }
+                title: { display: true, text: 'Category-wise Expense Distribution', color: chartTextColor(), font: { size: 13, weight: '600' } }
+            }
+        }
+    });
+
+    /* ── BAR CHART (myChart2) ── */
+    const ctx2 = document.getElementById('myChart2');
+    barChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [{
+                label: 'Weekly Spending (₹)',
+                // data: [1200, 1900, 300, 500, 200, 300, 700],
+                backgroundColor: [
+                    'rgba(99,102,241,0.75)',
+                    'rgba(34,211,238,0.75)',
+                    'rgba(245,158,11,0.75)',
+                    'rgba(239,68,68,0.75)',
+                    'rgba(16,185,129,0.75)',
+                    'rgba(139,92,246,0.75)',
+                    'rgba(251,146,60,0.75)'
+                ],
+                borderRadius: 8,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: chartTextColor(), font: { size: 12 } } }
+            },
+            scales: {
+                x: { ticks: { color: chartTextColor() }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } }
+            }
+        }
+    });
+});
+
+
+/* ── Year dropdown: populate dynamically ── */
+function populateYearDropdown() {
+    const sel = document.getElementById('lineChartYear');
+    const currentYear = new Date().getFullYear();
+    sel.innerHTML = '';
+    for (let y = currentYear; y >= currentYear - 3; y--) {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        sel.appendChild(opt);
+    }
+    sel.value = currentYear;
+}
+
+/* ── Month dropdown: default to current month ── */
+function initMonthDropdown() {
+    document.getElementById('donutChartMonth').value = new Date().getMonth() + 1;
+}
+
+
+// Toggle Chart Themes
+function updateChartThemes() {
+    [lineChart, donutChart, barChart].forEach(chart => {
+        if (!chart) return;
+        const tc = chartTextColor(), gc = chartGridColor();
+        if (chart.options.plugins.legend)
+            chart.options.plugins.legend.labels.color = tc;
+        if (chart.options.plugins.title)
+            chart.options.plugins.title.color = tc;
+        if (chart.options.scales) {
+            ['x','y'].forEach(ax => {
+                if (chart.options.scales[ax]) {
+                    if (chart.options.scales[ax].ticks) chart.options.scales[ax].ticks.color = tc;
+                    if (chart.options.scales[ax].grid)  chart.options.scales[ax].grid.color  = gc;
+                }
+            });
+        }
+        chart.update();
+    });
+}
+</script>
+
+<script>
+/* ════════════════════════════════
+   EXPENSES MODAL LOGIC
+════════════════════════════════ */
+let expenses = []; // In-memory store — hook to Flask /api/expense
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('expDate').valueAsDate = new Date();
+    populateYearDropdown();
+    initMonthDropdown();
+    loadYearCharts();
+    loadDonutChart();
+    loadWeeklyChart();
+    document.getElementById("lineChartYear").addEventListener("change", loadYearCharts);
+    document.getElementById("donutChartMonth").value = "all";
+
+    document.getElementById("lineChartYear")
+        .addEventListener("change", () => {
+            loadYearCharts();
+            loadDonutChart();
+        });
+
+    document.getElementById("donutChartMonth")
+        .addEventListener("change", loadDonutChart);
+
+    loadPendingPayments();
+    loadTotalExpense();
+    loadProfile();
+    loadSmartInsights();
+    loadSavingCard();
+});
+
+function openExpModal() {
+    document.getElementById('expModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    hideFab();
+    loadExpenses();
+    renderHistory();
+}
+function closeExpModal() {
+    document.getElementById('expModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    showFab();
+}
+function handleExpOverlay(e) {
+    if (e.target === document.getElementById('expModalOverlay')) closeExpModal();
+}
+/* Escape key close disabled — use X button only */
+
+function switchTab(tab) {
+    document.getElementById('tabHistoryBtn').classList.toggle('active', tab === 'history');
+    document.getElementById('tabScanBtn').classList.toggle('active', tab === 'scan');
+    document.getElementById('tabAddBtn').classList.toggle('active', tab === 'add');
+    document.getElementById('panelHistory').classList.toggle('active', tab === 'history');
+    document.getElementById('panelScan').classList.toggle('active', tab === 'scan');
+    document.getElementById('panelAdd').classList.toggle('active', tab === 'add');
+    if (tab === 'history') loadExpenses();
+}
+
+/* Category icon + colour map */
+const catMeta = {
+    food:          { icon: '🍔', bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
+    transport:     { icon: '🚌', bg: 'rgba(34,211,238,0.15)',  color: '#22d3ee' },
+    entertainment: { icon: '🎬', bg: 'rgba(139,92,246,0.15)',  color: '#8b5cf6' },
+    shopping:      { icon: '🛍️', bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
+    utilities:     { icon: '💡', bg: 'rgba(16,185,129,0.15)',  color: '#10b981' },
+    health:        { icon: '🏥', bg: 'rgba(99,102,241,0.15)',  color: '#6366f1' },
+    miscellaneous: { icon: '📦', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' }
+};
+
+function loadExpenses() { // loading all expenses for rendering history
+    fetch('/get-expenses', {
+        method: 'GET',
+        // credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            console.error(data.error);
+            return;
+        }
+
+        expenses = data.expenses;
+        renderHistory();
+    })
+    .catch(err => console.error(err));
+}
+
+
+function renderHistory() {
+    const list  = document.getElementById('expList');
+    const empty = document.getElementById('emptyState');
+
+    // Sort newest first by date
+    const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (sorted.length === 0) {
+        list.innerHTML  = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    list.innerHTML = sorted.map((exp, i) => {
+        const meta = catMeta[exp.category] || catMeta.miscellaneous;
+        const dateStr = new Date(exp.date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+        // const expId = exp.id !== undefined ? exp.id : i;
+        const expId = exp._id;
+        return `
+        <div class="exp-item">
+            <div class="exp-icon" style="background:${meta.bg}; color:${meta.color}; font-size:1.2rem;">${meta.icon}</div>
+            <div class="exp-info">
+                <div class="exp-title">${escHtml(exp.title)}</div>
+                <div class="exp-meta">${dateStr} &middot; ${exp.method.toUpperCase()}${exp.note ? ' &middot; ' + escHtml(exp.note) : ''}</div>
+            </div>
+            <div class="exp-amount">-₹${parseFloat(exp.amount).toLocaleString('en-IN')}</div>
+            <button class="del-btn" onclick="deleteExpense('${expId}',event)">
+                <i class="bi bi-trash3-fill"></i> Delete
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function submitExpense() {
+    // event.preventDefault();
+    const title    = document.getElementById('expTitle').value.trim();
+    const amount   = document.getElementById('expAmount').value;
+    const date     = document.getElementById('expDate').value;
+    const category = document.getElementById('expCategory').value;
+    const method   = document.getElementById('expMethod').value;
+    const note     = document.getElementById('expNote').value.trim();
+    const errBox   = document.getElementById('expErrBox');
+    const errTxt   = document.getElementById('expErrTxt');
+
+    errBox.style.display = 'none';
+
+    if (!title)                           { errTxt.textContent = 'Please enter a title.';            errBox.style.display = 'flex'; return; }
+    if (!amount || parseFloat(amount) <= 0) { errTxt.textContent = 'Please enter a valid amount.';   errBox.style.display = 'flex'; return; }
+    if (!date)                            { errTxt.textContent = 'Please select a date.';            errBox.style.display = 'flex'; return; }
+    if (!category)                        { errTxt.textContent = 'Please select a category.';        errBox.style.display = 'flex'; return; }
+    if (!method)                          { errTxt.textContent = 'Please select a payment method.';  errBox.style.display = 'flex'; return; }
+
+    const expense = { title, amount: parseFloat(amount), date, category, method, note, status: "completed" };
+    // expenses.push(expense);
+
+    // TODO: POST to Flask
+    fetch('/add-expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expense)
+    })
+    .then(() => {
+        loadExpenses();
+        loadYearCharts();
+        loadDonutChart();
+        loadWeeklyChart();
+        loadTotalExpense();
+        loadSmartInsights();
+        loadSavingCard();
+        // Switch to history to show the new entry
+        switchTab('history');
+    });
+
+    // Reset form
+    document.getElementById('expTitle').value    = '';
+    document.getElementById('expAmount').value   = '';
+    document.getElementById('expDate').valueAsDate = new Date();
+    document.getElementById('expCategory').value = '';
+    document.getElementById('expMethod').value   = '';
+    document.getElementById('expNote').value     = '';
+}
+
+
+function loadYearCharts() {
+
+    const year = document.getElementById("lineChartYear").value;
+
+    fetch('/yearly-analytics?year=' + year, {
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        lineChart.data.labels = data.line_labels;
+        lineChart.data.datasets[0].data = data.line_values;
+        lineChart.update();
+
+        donutChart.data.labels = data.pie_labels;
+        donutChart.data.datasets[0].data = data.pie_values;
+        donutChart.update();
+    });
+}
+
+function loadDonutChart() {
+
+    const year  = document.getElementById("lineChartYear").value;
+    const month = document.getElementById("donutChartMonth").value;
+
+    fetch(`/category-analytics?year=${year}&month=${month}`, {
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        donutChart.data.labels = data.pie_labels;
+        donutChart.data.datasets[0].data = data.pie_values;
+        donutChart.update();
+
+    });
+}
+
+function loadWeeklyChart() {
+
+    fetch('/weekly-analytics', {
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        barChart.data.labels = data.week_labels;
+        barChart.data.datasets[0].data = data.week_values;
+        barChart.update();
+
+    });
+}
+
+function loadTotalExpense() {
+    fetch('/total-expense', {
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) return;
+
+        const total = data.total || 0;
+        const el = document.getElementById('totalExpense');
+
+        // Update value
+        el.innerText = '₹' + total.toLocaleString('en-IN');
+
+        // Add animation
+        el.classList.remove('highlight-update');
+        void el.offsetWidth; // 🔥 force reflow (important)
+        el.classList.add('highlight-update');
+    });
+}
+
+// function loadTotalExpense() {
+//     fetch('/total-expense', {
+//         credentials: 'same-origin'
+//     })
+//     .then(res => res.json())
+//     .then(data => {
+//         if (data.error) return;
+
+//         const total = data.total || 0;
+
+//         document.getElementById('totalExpense').innerText =
+//             '₹' + total.toLocaleString('en-IN');
+//     })
+//     .catch(err => console.error(err));
+// }
+
+
+/* ════════════════════════
+   SCAN RECEIPT
+════════════════════════ */
+function onReceiptFileChange(input) {
+    const name = input.files[0] ? input.files[0].name : 'No file chosen';
+    document.getElementById('scanFileName').textContent = name;
+    document.getElementById('scanResult').style.display = 'none';
+}
+
+function scanReceipt() {
+
+    const fileInput = document.getElementById("receiptFile");
+    const btn = document.getElementById("scanReceiptBtn");
+
+    if (!fileInput.files.length) {
+        alert("Please select a receipt image");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("receipt", fileInput.files[0]);
+
+    // Change button state
+    btn.innerText = "Scanning...";
+    btn.disabled = true;
+
+    fetch("/scan-receipt", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.success) {
+
+            btn.innerText = "Expense Added ✓";
+
+            // refresh dashboard
+            loadExpenses();
+            loadYearCharts();
+            loadDonutChart();
+            loadWeeklyChart();
+            loadTotalExpense();
+            loadSmartInsights();
+            loadSavingCard();
+
+        } else {
+            btn.innerText = "Scan Failed";
+        }
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            btn.innerText = "Scan Receipt";
+            btn.disabled = false;
+        }, 2000);
+
+    })
+    .catch(err => {
+        console.error(err);
+        btn.innerText = "Error";
+        btn.disabled = false;
+    });
+}
+
+
+function showScanResult(data) {
+    document.getElementById('srTitle').textContent    = data.title    || '—';
+    document.getElementById('srAmount').textContent   = '₹' + parseFloat(data.amount).toLocaleString('en-IN') || '—';
+    document.getElementById('srDate').textContent     = data.date     || '—';
+    document.getElementById('srCategory').textContent = data.category || '—';
+    document.getElementById('scanResult').style.display = 'block';
+}
+
+function useScannedExpense() {
+    // Pre-fill the Add Expense form with scanned values, then switch tab
+    document.getElementById('expTitle').value  = document.getElementById('srTitle').textContent;
+    document.getElementById('expAmount').value = parseFloat(
+        document.getElementById('srAmount').textContent.replace(/[₹,]/g,'')
+    );
+    document.getElementById('expDate').value   = document.getElementById('srDate').textContent;
+    const cat = document.getElementById('srCategory').textContent.toLowerCase();
+    const validCats = ['food','transport','entertainment','shopping','utilities','health','miscellaneous'];
+    document.getElementById('expCategory').value = validCats.includes(cat) ? cat : 'miscellaneous';
+    switchTab('add');
+    showToast('Receipt data loaded — review and submit!', 'info');
+}
+
+</script>
+
+
+<!-- ════════════════════════════════════════
+     PROFILE MODAL (tabbed)
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="profileModalOverlay">
+    <div class="prof-modal-inner" id="profileModal">
+
+        <!-- Tab bar -->
+        <div class="modal-tabs">
+            <button class="modal-tab active" id="profTabProfileBtn" onclick="switchProfTab('profile')">
+                <i class="bi bi-person-circle me-1"></i> Profile
+            </button>
+            <button class="modal-tab" id="profTabPwBtn" onclick="switchProfTab('password')">
+                <i class="bi bi-shield-lock me-1"></i> Change Password
+            </button>
+            <button class="modal-close-btn" onclick="closeProfileModal()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-body-scroll">
+
+            <!-- ── PROFILE TAB ── -->
+            <div class="tab-panel active" id="profPanelProfile">
+
+                <!-- Avatar -->
+                <div class="text-center mb-3 mt-1">
+                    <div class="prof-avatar-ring">
+                        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="28" cy="21" r="11" fill="currentColor" opacity="0.55"/>
+                            <path d="M7 51c0-11.598 9.402-21 21-21s21 9.402 21 21" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+                        </svg>
+                    </div>
+                    <div class="profile-name" id="profileDisplayName">Your name</div>
+                    <!-- <div class="profile-email-tag" id="profileDisplayEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b6dbc3c5ded7c4d7d0f6d3dbd7dfda98d5d9db">[email&#160;protected]</a></div> -->
+                </div>
+
+                <!-- Name field -->
+                <div class="mb-3">
+                    <label class="prof-field-label">Full Name</label>
+                    <!-- <input type="text" class="prof-input" id="profileUsername"
+                           placeholder="Your name" value="Musharaf Khan"
+                           oninput="updateDisplayName(this.value)" /> -->
+                    <input type="text" class="prof-input" id="profileUsername"
+                           placeholder="Your name" value="Your name" />
+                </div>
+
+                <!-- Email (read-only) -->
+                <div class="mb-3">
+                    <label class="prof-field-label">Email Address</label>
+                    <input type="email" class="prof-input" id="profileEmail"
+                           value="your_name@email.com" readonly />
+                    <div style="font-size:0.72rem; margin-top:4px; opacity:0.4;">
+                        <i class="bi bi-lock-fill me-1"></i>Email cannot be changed. Contact support.
+                    </div>
+                </div>
+
+                <!-- Monthly Saving Goal -->
+                <div class="mb-4">
+                    <!-- <label class="prof-field-label">Monthly Saving Goal</label> -->
+                    <label class="prof-field-label">Monthly Budget</label>
+                    <div class="goal-wrap">
+                        <span class="goal-sym">₹</span>
+                        <input type="number" class="prof-input" id="profileSavingGoal"
+                               placeholder="e.g. 10000" min="0" step="100" />
+                    </div>
+                    <div style="font-size:0.72rem; margin-top:4px; opacity:0.4;">
+                        <i class="bi bi-info-circle me-1"></i>Set your target monthly saving amount.
+                    </div>
+                </div>
+
+                <button class="btn-prof-save" onclick="savePersonalDetails()">
+                    Save Profile
+                </button>
+
+            </div><!-- /profPanelProfile -->
+
+            <!-- ── CHANGE PASSWORD TAB ── -->
+            <div class="tab-panel" id="profPanelPassword">
+
+                <!-- Current Password -->
+                <div class="mb-3 mt-1">
+                    <label class="prof-field-label">Current Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" class="prof-input" id="currentPw" placeholder="Enter current password" />
+                        <button class="pw-eye" type="button" onclick="togglePwVis('currentPw', this)">
+                            <i class="bi bi-eye-fill eye-on"></i>
+                            <i class="bi bi-eye-slash-fill eye-off" style="display:none"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- New Password -->
+                <div class="mb-3">
+                    <label class="prof-field-label">New Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" class="prof-input" id="newPw" placeholder="Min. 8 characters" />
+                        <button class="pw-eye" type="button" onclick="togglePwVis('newPw', this)">
+                            <i class="bi bi-eye-fill eye-on"></i>
+                            <i class="bi bi-eye-slash-fill eye-off" style="display:none"></i>
+                        </button>
+                    </div>
+                    <div style="margin-top:6px;">
+                        <div style="height:4px; border-radius:4px; background:#334155; overflow:hidden;">
+                            <div id="pwStrengthBar" style="height:100%; width:0%; border-radius:4px; transition:width 0.3s, background 0.3s;"></div>
+                        </div>
+                        <div id="pwStrengthLabel" style="font-size:0.7rem; margin-top:3px; opacity:0.6;"></div>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="mb-4">
+                    <label class="prof-field-label">Confirm Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" class="prof-input" id="confirmPw" placeholder="Repeat new password" />
+                        <button class="pw-eye" type="button" onclick="togglePwVis('confirmPw', this)">
+                            <i class="bi bi-eye-fill eye-on"></i>
+                            <i class="bi bi-eye-slash-fill eye-off" style="display:none"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="prof-err" id="pwErrBox" style="margin-bottom:0.75rem;">
+                    <i class="bi bi-exclamation-circle"></i><span id="pwErrTxt"></span>
+                </div>
+
+                <button class="btn-prof-save" onclick="changePassword()">
+                    Update Password
+                </button>
+
+                <div style="font-size:0.72rem; opacity:0.35; margin-top:1rem; line-height:1.6;">
+                    Use at least 8 characters with letters, numbers and symbols for best security.
+                </div>
+
+            </div><!-- /profPanelPassword -->
+
+        </div><!-- /modal-body-scroll -->
+    </div>
+</div>
+
+
+
+<!-- ════════════════════════════════════════
+     UPI PAY MODAL  (mobile only — single form)
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="payModalOverlay">
+    <div class="pay-modal" id="payModal">
+
+        <!-- Header -->
+        <div class="modal-tabs">
+            <span style="font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;" id="payModalTitle">
+                <i class="bi bi-send-fill text-primary"></i> <span id="payModalTitleText">Quick Pay</span>
+            </span>
+            <button class="modal-close-btn" onclick="closePayModal()" aria-label="Close" style="margin-left:auto;">&times;</button>
+        </div>
+
+        <div class="modal-body-scroll">
+
+            <!-- ── SINGLE PAY FORM ── -->
+            <div id="payFormSection">
+
+                <!-- UPI ID (optional) -->
+                <div class="mb-3">
+                    <label class="form-label-sm">UPI ID / Phone <span style="font-weight:400;text-transform:none;font-size:0.72rem">(optional)</span></label>
+                    <input type="text" class="exp-input" id="payUpiId" placeholder="e.g. name@upi or 9876543210@paytm" />
+                </div>
+
+                <!-- Amount -->
+                <div class="mb-3">
+                    <label class="form-label-sm">Amount</label>
+                    <div class="amount-wrap">
+                        <span class="amount-sym">₹</span>
+                        <input type="number" class="exp-input" id="payAmount" placeholder="0.00" min="1" step="0.01" />
+                    </div>
+                </div>
+
+                <!-- Category + Date -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-sm">Category</label>
+                        <select class="exp-select" id="payCategory">
+                            <option value="miscellaneous">Miscellaneous</option>
+                            <option value="food">Food</option>
+                            <option value="transport">Transport</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="health">Health</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-sm">Date</label>
+                        <input type="date" class="exp-input" id="payDate" />
+                    </div>
+                </div>
+
+                <div class="err-msg" id="payErr">
+                    <i class="bi bi-exclamation-circle"></i><span id="payErrTxt"></span>
+                </div>
+
+                <!-- Helper box (shown after amount entered) -->
+                <div class="pay-helper-box" id="payHelperBox">
+                    <div style="font-size:0.72rem; font-weight:700; opacity:0.5; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">
+                        <i class="bi bi-info-circle me-1"></i> Copy & paste into your UPI app
+                    </div>
+                    <div class="pay-helper-row">
+                        <span class="pay-helper-label">UPI ID</span>
+                        <span style="display:flex;align-items:center;">
+                            <span class="pay-helper-val" id="helperUpiVal">—</span>
+                            <button class="pay-copy-btn" onclick="copyPayHelper('helperUpiVal', this)">Copy</button>
+                        </span>
+                    </div>
+                    <div class="pay-helper-row">
+                        <span class="pay-helper-label">Amount</span>
+                        <span style="display:flex;align-items:center;">
+                            <span class="pay-helper-val" id="helperAmtVal">—</span>
+                            <button class="pay-copy-btn" onclick="copyPayHelper('helperAmtVal', this)">Copy</button>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Action button -->
+                <div class="pay-action-row">
+                    <button class="btn-open-upi" style="flex:1;" onclick="doOpenUpiApp()">
+                        <i class="bi bi-send-fill me-1"></i> Open UPI App
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /modal-body-scroll -->
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MAKE PAYMENT MODAL (mobile FAB — independent from pending)
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="makePayModalOverlay">
+    <div class="pay-modal" id="makePayModal">
+        <div class="modal-tabs">
+            <span style="font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                <i class="bi bi-credit-card-2-front-fill text-success"></i> Make Payment
+            </span>
+            <button class="modal-close-btn" onclick="closeMakePayModal()" aria-label="Close" style="margin-left:auto;">&times;</button>
+        </div>
+        <div class="modal-body-scroll">
+            <!-- UPI ID (optional) -->
+            <div class="mb-3">
+                <label class="form-label-sm">UPI ID / Phone <span style="font-weight:400;text-transform:none;font-size:0.72rem">(optional)</span></label>
+                <input type="text" class="exp-input" id="mpUpiId" placeholder="e.g. name@upi or 9876543210@paytm" />
+            </div>
+            <!-- Amount -->
+            <div class="mb-3">
+                <label class="form-label-sm">Amount</label>
+                <div class="amount-wrap">
+                    <span class="amount-sym">₹</span>
+                    <input type="number" class="exp-input" id="mpAmount" placeholder="0.00" min="1" step="0.01" />
+                </div>
+            </div>
+            <!-- Category + Date -->
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label-sm">Category</label>
+                    <select class="exp-select" id="mpCategory">
+                        <option value="miscellaneous">Miscellaneous</option>
+                        <option value="food">Food</option>
+                        <option value="transport">Transport</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="shopping">Shopping</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="health">Health</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label-sm">Date</label>
+                    <input type="date" class="exp-input" id="mpDate" />
+                </div>
+            </div>
+            <div class="err-msg" id="mpErr">
+                <i class="bi bi-exclamation-circle"></i><span id="mpErrTxt"></span>
+            </div>
+            <!-- Helper box -->
+            <div class="pay-helper-box" id="mpHelperBox">
+                <div style="font-size:0.72rem;font-weight:700;opacity:0.5;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">
+                    <i class="bi bi-info-circle me-1"></i> Copy & paste into your UPI app
+                </div>
+                <div class="pay-helper-row">
+                    <span class="pay-helper-label">UPI ID</span>
+                    <span style="display:flex;align-items:center;">
+                        <span class="pay-helper-val" id="mpHelperUpi">—</span>
+                        <button class="pay-copy-btn" onclick="copyMpHelper('mpHelperUpi',this)">Copy</button>
+                    </span>
+                </div>
+                <div class="pay-helper-row">
+                    <span class="pay-helper-label">Amount</span>
+                    <span style="display:flex;align-items:center;">
+                        <span class="pay-helper-val" id="mpHelperAmt">—</span>
+                        <button class="pay-copy-btn" onclick="copyMpHelper('mpHelperAmt',this)">Copy</button>
+                    </span>
+                </div>
+            </div>
+            <!-- Action button -->
+            <div class="pay-action-row">
+                <button class="btn-open-upi" style="flex:1;" onclick="doMpOpenUpiApp()">
+                    <i class="bi bi-send-fill me-1"></i> Open UPI App
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Quick Pay Confirmation Dialog (Pending Payments) ── -->
+<div class="modal-overlay" id="payConfirmOverlay">
+    <div class="pay-confirm-dialog">
+        <div class="pay-confirm-icon">
+            <i class="bi bi-question-circle-fill"></i>
+        </div>
+        <h5 class="pay-confirm-title">Was the payment successful?</h5>
+        <p class="pay-confirm-sub">Please confirm whether your payment was completed in the UPI app.</p>
+        <div class="pay-confirm-btns">
+            <button class="btn-confirm-no" onclick="confirmPayment(false)">
+                <i class="bi bi-x-circle me-1"></i> No
+            </button>
+            <button class="btn-confirm-yes" onclick="confirmPayment(true)">
+                <i class="bi bi-check-circle me-1"></i> Yes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Make Payment Confirmation Dialog (FAB) ── -->
+<div class="modal-overlay" id="mpConfirmOverlay">
+    <div class="pay-confirm-dialog">
+        <div class="pay-confirm-icon">
+            <i class="bi bi-question-circle-fill"></i>
+        </div>
+        <h5 class="pay-confirm-title">Was the payment successful?</h5>
+        <p class="pay-confirm-sub">Please confirm whether your payment was completed in the UPI app.</p>
+        <div class="pay-confirm-btns">
+            <button class="btn-confirm-no" onclick="confirmMpPayment(false)">
+                <i class="bi bi-x-circle me-1"></i> No
+            </button>
+            <button class="btn-confirm-yes" onclick="confirmMpPayment(true)">
+                <i class="bi bi-check-circle me-1"></i> Yes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Floating Make Payment button (mobile only) ── -->
+<button class="fab-pay d-lg-none" onclick="openMakePaymentModal()" aria-label="Make Payment">
+    <i class="bi bi-send-fill"></i>
+    <span class="fab-pay-label">Pay</span>
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+/* ════════════════════════
+   TOAST HELPER
+════════════════════════ */
+function showToast(msg, type = 'success', duration = 3000) {
+    const icons = { success: 'bi-check-circle-fill', error: 'bi-x-circle-fill', info: 'bi-info-circle-fill' };
+    const t = document.createElement('div');
+    t.className = `toast-notif ${type}`;
+    t.innerHTML = `<i class="bi ${icons[type] || icons.info}"></i> ${msg}`;
+    document.body.appendChild(t);
+    setTimeout(() => {
+        t.style.animation = 'none';
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.3s';
+        setTimeout(() => t.remove(), 300);
+    }, duration);
+}
+
+/* ════════════════════════
+   DELETE EXPENSE
+════════════════════════ */
+
+function deleteExpense(id,event) {
+
+    if (event) event.stopPropagation();
+
+    fetch('/delete-expense/' + id, {
+        method: 'DELETE'
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.success) {
+
+            showToast('Expense deleted!', 'error');
+
+            // refresh everything
+            loadExpenses();
+            loadYearCharts();
+            loadDonutChart();
+            loadWeeklyChart();
+            loadTotalExpense();
+            loadSmartInsights();
+            loadSavingCard();
+
+        } else {
+            console.error(data.error);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+/* ════════════════════════
+   PROFILE MODAL
+════════════════════════ */
+let CURRENT_PW = 'password123';
+
+function openProfileModal() {
+    loadProfile();
+    document.getElementById('profileModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    hideFab();
+    document.getElementById('pwErrBox').style.display = 'none';
+    document.getElementById('currentPw').value = '';
+    document.getElementById('newPw').value = '';
+    document.getElementById('confirmPw').value = '';
+    document.getElementById('pwStrengthBar').style.width = '0%';
+    document.getElementById('pwStrengthLabel').textContent = '';
+    switchProfTab('profile');
+}
+function closeProfileModal() {
+    document.getElementById('profileModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    showFab();
+}
+function switchProfTab(tab) {
+    document.getElementById('profTabProfileBtn').classList.toggle('active', tab === 'profile');
+    document.getElementById('profTabPwBtn').classList.toggle('active', tab === 'password');
+    document.getElementById('profPanelProfile').classList.toggle('active', tab === 'profile');
+    document.getElementById('profPanelPassword').classList.toggle('active', tab === 'password');
+    if (tab === 'password') document.getElementById('pwErrBox').style.display = 'none';
+}
+// function updateDisplayName(val) {
+//     document.getElementById('profileDisplayName').textContent = val || 'Your Name';
+// }
+function savePersonalDetails() {
+    const username = document.getElementById('profileUsername').value.trim();
+    const goal     = document.getElementById('profileSavingGoal').value;
+    if (!username) { showToast('Name cannot be empty', 'error'); return; }
+    document.getElementById('profileDisplayName').textContent = username;
+    showToast('Profile saved successfully!', 'success');
+}
+
+/* Password strength meter */
+document.addEventListener('DOMContentLoaded', () => {
+    const newPwEl = document.getElementById('newPw');
+    if (newPwEl) {
+        newPwEl.addEventListener('input', () => {
+            const val = newPwEl.value;
+            let score = 0;
+            if (val.length >= 8)  score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+            const levels = [
+                { w:'0%',c:'',label:'' },
+                { w:'25%',c:'#ef4444',label:'Weak' },
+                { w:'50%',c:'#f59e0b',label:'Fair' },
+                { w:'75%',c:'#3b82f6',label:'Good' },
+                { w:'100%',c:'#10b981',label:'Strong 💪' }
+            ];
+            const lv = levels[score];
+            document.getElementById('pwStrengthBar').style.width = lv.w;
+            document.getElementById('pwStrengthBar').style.background = lv.c;
+            document.getElementById('pwStrengthLabel').textContent = lv.label;
+        });
+    }
+    // Set pay date defaults
+    const pd = document.getElementById('payDate');
+    if (pd) pd.valueAsDate = new Date();
+
+    // Live helper box update — Quick Pay
+    ['payUpiId','payAmount'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePayHelper);
+    });
+
+    // Live helper box update — Make Payment
+    ['mpUpiId','mpAmount'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateMpHelper);
+    });
+
+    // Load pending payments
+    fetch('/get-pending').then(r=>r.json()).then(d=>{
+        if(d.pending) { pendingPayments = d.pending; renderPendingList(); }
+    }).catch(()=>{ renderPendingList(); });
+});
+
+function togglePwVis(id, btn) {
+    const el = document.getElementById(id);
+    const show = el.type === 'password';
+    el.type = show ? 'text' : 'password';
+    btn.querySelector('.eye-on').style.display  = show ? 'none' : '';
+    btn.querySelector('.eye-off').style.display = show ? ''     : 'none';
+}
+
+// function changePassword() {
+//     const current = document.getElementById('currentPw').value;
+//     const newPw   = document.getElementById('newPw').value;
+//     const confirm = document.getElementById('confirmPw').value;
+//     const errBox  = document.getElementById('pwErrBox');
+//     const errTxt  = document.getElementById('pwErrTxt');
+//     errBox.style.display = 'none';
+//     if (!current)          { errTxt.textContent='Please enter your current password.'; errBox.style.display='flex'; return; }
+//     if (!newPw)            { errTxt.textContent='Please enter a new password.'; errBox.style.display='flex'; return; }
+//     if (newPw.length < 8)  { errTxt.textContent='New password must be at least 8 characters.'; errBox.style.display='flex'; return; }
+//     if (newPw !== confirm)  { errTxt.textContent='New passwords do not match.'; errBox.style.display='flex'; return; }
+//     if (current !== CURRENT_PW) {
+//         errTxt.textContent = 'Current password is incorrect.';
+//         errBox.style.display = 'flex';
+//         showToast('Incorrect current password', 'error');
+//         return;
+//     }
+//     CURRENT_PW = newPw;
+//     document.getElementById('currentPw').value = '';
+//     document.getElementById('newPw').value = '';
+//     document.getElementById('confirmPw').value = '';
+//     document.getElementById('pwStrengthBar').style.width = '0%';
+//     document.getElementById('pwStrengthLabel').textContent = '';
+//     document.getElementById('pwErrBox').style.display = 'none';
+//     showToast('Password updated successfully! 🔒', 'success');
+// }
+
+function changePassword() {
+
+    const current = document.getElementById('currentPw').value;
+    const newPass = document.getElementById('newPw').value;
+    const confirm = document.getElementById('confirmPw').value;
+
+    // Empty check
+    if (!current || !newPass || !confirm) {
+        showToast("All fields are required", "error");
+        return;
+    }
+    // Match check
+    if (newPass !== confirm) {
+        showToast("Passwords do not match", "error");
+        return;
+    }
+    // Same password check (frontend)
+    if (current === newPass) {
+        showToast("New password must be different", "error");
+        return;
+    }
+    // Length check
+    if (newPass.length < 6) {
+        showToast("Password must be at least 6 characters", "error");
+        return;
+    }
+
+    fetch('/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            current_password: current,
+            new_password: newPass
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.error) {
+            showToast(data.error, "error");
+        } else {
+            showToast("Password updated successfully!", "success");
+
+            // clear fields
+            document.getElementById('currentPw').value = '';
+            document.getElementById('newPw').value = '';
+            document.getElementById('confirmPw').value = '';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast("Something went wrong", "error");
+    });
+}
+
+function loadProfile() {
+    fetch('/get-profile', {
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('profileDisplayName').innerText = data.name || 'User';
+        document.getElementById('profileUsername').value = data.name || '';
+        document.getElementById('profileEmail').value = data.email || '';
+        document.getElementById('profileSavingGoal').value = data.monthly_goal || '';
+    });
+}
+
+function savePersonalDetails() {
+
+    const name = document.getElementById('profileUsername').value.trim();
+    const goal = parseFloat(document.getElementById('profileSavingGoal').value);
+
+    if (!name) {
+        alert("Name cannot be empty");
+        return;
+    }
+
+    fetch('/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            monthly_goal: goal
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.success) {
+
+            // update name instantly
+            document.getElementById('profileDisplayName').innerText = name;
+
+            showToast("Profile updated!", "success");
+        }
+        loadSavingCard();
+    });
+}
+
+/* ════════════════════════════════════════
+   PENDING PAYMENTS
+════════════════════════════════════════ */
+let pendingPayments = [];
+let currentPendingId = null;
+
+function togglePendingForm() {
+    const wrap = document.getElementById('pendingFormWrap');
+    const isOpen = wrap.classList.toggle('open');
+    if (isOpen) {
+        document.getElementById('ppDate').valueAsDate = new Date();
+        document.getElementById('ppErrBox').style.display = 'none';
+    }
+}
+
+function addPendingPayment() {
+    const name     = document.getElementById('ppName').value.trim();
+    const upiId    = document.getElementById('ppUpi').value.trim();
+    const amount   = parseFloat(document.getElementById('ppAmount').value);
+    const category = document.getElementById('ppCategory').value;
+    const date     = document.getElementById('ppDate').value;
+    const errBox   = document.getElementById('ppErrBox');
+    const errTxt   = document.getElementById('ppErrTxt');
+    errBox.style.display = 'none';
+
+    if (!name)              { errTxt.textContent='Please enter a recipient name.'; errBox.style.display='flex'; return; }
+    if (!amount || amount<1){ errTxt.textContent='Please enter a valid amount.';   errBox.style.display='flex'; return; }
+    if (!date)              { errTxt.textContent='Please select a date.';           errBox.style.display='flex'; return; }
+
+    // const entry = { id: Date.now(), name, upiId, amount, category, date, status: 'pending' };
+    const entry = { name, upiId, amount, category, date, status: 'pending' };
+    // pendingPayments.push(entry);
+    
+    fetch('/add-pending', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(entry)
+    })
+    .then(res => res.json())
+    .then(data => {
+        // attach backend _id
+        entry._id = data.id;
+        pendingPayments.push(entry);
+        renderPendingList();
+    })
+    .catch(()=>{});
+    
+    // Reset form
+    document.getElementById('ppName').value = '';
+    document.getElementById('ppUpi').value  = '';
+    document.getElementById('ppAmount').value = '';
+    document.getElementById('ppDate').value = '';
+    togglePendingForm();
+    renderPendingList();
+    showToast('Pending payment added!', 'success');
+}
+
+function loadPendingPayments() {
+    fetch('/get-pending')
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) return;
+
+        pendingPayments = data.pending;
+        renderPendingList();
+    })
+    .catch(err => console.error(err));
+}
+
+function renderPendingList() {
+    const list  = document.getElementById('pendingList');
+    const empty = document.getElementById('pendingEmpty');
+    const active = pendingPayments.filter(p => p.status === 'pending');
+    if (active.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    const catIcons = { food:'🍔', transport:'🚌', entertainment:'🎬', shopping:'🛍️', utilities:'💡', health:'🏥', miscellaneous:'📦' };
+    list.innerHTML = active.map(p => {
+        const icon = catIcons[p.category] || '📦';
+        const dateStr = new Date(p.date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+        return `
+        <div class="pending-item" onclick="openPayFromPending('${p._id}')">
+            <div class="pending-icon">${icon}</div>
+            <div class="pending-info">
+                <div class="pending-name">${escHtml(p.name)}</div>
+                <div class="pending-meta">${dateStr}${p.upiId ? ' · ' + escHtml(p.upiId) : ''} · ₹${p.amount.toLocaleString('en-IN')}</div>
+            </div>
+            <div class="pending-right">
+                <span class="pending-amount">₹${p.amount.toLocaleString('en-IN')}</span>
+                <button class="pending-del-btn" onclick="deletePending('${p._id}', event)"><i class="bi bi-trash3-fill"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function deletePending(id, event) {
+    event.stopPropagation();
+
+    fetch('/delete-pending/' + id, { method:'DELETE' })
+    .then(res => res.json())
+    .then(() => {
+        loadPendingPayments();
+        showToast('Removed from pending!', 'info');
+    });
+}
+
+function openPayFromPending(id) {
+    const p = pendingPayments.find(x => x._id === id);
+    if (!p) return;
+
+    /* fill fields with this payment's data */
+    document.getElementById('payUpiId').value    = p.upiId || '';
+    document.getElementById('payAmount').value   = p.amount;
+    document.getElementById('payCategory').value = p.category;
+    document.getElementById('payDate').value     = p.date;
+    currentPendingId = id;
+
+    /* populate helper directly from pending data — no waiting for input */
+    document.getElementById('helperUpiVal').textContent = p.upiId || '—';
+    document.getElementById('helperAmtVal').textContent = '₹' + parseFloat(p.amount).toLocaleString('en-IN');
+
+    openPayModal();
+}
+
+/* ════════════════════════════════════════
+   UPI PAY MODAL
+════════════════════════════════════════ */
+let pendingPaymentId   = null;
+let qrStream           = null;
+let qrScanInterval     = null;
+let pendingPaymentData = null;
+
+/* ── FAB visibility helpers ── */
+function hideFab() { const f=document.querySelector('.fab-pay'); if(f) f.classList.add('fab-hidden'); }
+function showFab() { const f=document.querySelector('.fab-pay'); if(f) f.classList.remove('fab-hidden'); }
+
+function openPayModal() {
+    document.getElementById('payModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    hideFab();
+    showPayForm();
+    document.getElementById('payErr').style.display = 'none';
+    if (!document.getElementById('payDate').value)
+        document.getElementById('payDate').valueAsDate = new Date();
+    updatePayHelper();
+}
+function closePayModal() {
+    document.getElementById('payModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    showFab();
+    stopQrScan();
+    // currentPendingId = null;
+}
+function showPayForm() {
+    document.getElementById('payFormSection').style.display = '';
+    document.getElementById('payQrSection').style.display   = 'none';
+    stopQrScan();
+}
+function doOpenUpiApp() {
+    const upiId  = document.getElementById('payUpiId').value.trim();
+    const amount = parseFloat(document.getElementById('payAmount').value);
+    const cat    = document.getElementById('payCategory').value;
+    const date   = document.getElementById('payDate').value;
+    const errBox = document.getElementById('payErr');
+    const errTxt = document.getElementById('payErrTxt');
+    errBox.style.display = 'none';
+    if (!amount || amount<1) { errTxt.textContent='Please enter a valid amount.'; errBox.style.display='flex'; return; }
+    const name = upiId ? upiId.split('@')[0] : 'Merchant';
+    launchUpiDeepLink(upiId, amount, cat, date, name);
+}
+function doScanQr() { doScanQrDeepLink(); }
+function doScanQrDeepLink() {
+    closePayModal(); // close Quick Pay modal immediately
+    const upiLink = 'upi://pay';
+    window.location.href = upiLink;
+    setTimeout(() => {
+        document.getElementById('payConfirmOverlay').classList.add('open');
+    }, 6000);
+}
+function useQrUpiInForm() {
+    const detected = document.getElementById('qrDetectedUpiId').textContent.trim();
+    if (detected && detected !== '—') document.getElementById('payUpiId').value = detected;
+    showPayForm();
+    updatePayHelper();
+}
+function updatePayHelper() {
+    const upiId = document.getElementById('payUpiId').value.trim();
+    const amt   = document.getElementById('payAmount').value;
+    document.getElementById('helperUpiVal').textContent = upiId || '—';
+    document.getElementById('helperAmtVal').textContent = amt ? '₹' + parseFloat(amt).toLocaleString('en-IN') : '—';
+}
+function copyPayHelper(elId, btn) {
+    const txt = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+        btn.textContent = 'Copied!'; btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => showToast('Copy failed', 'error'));
+}
+
+/* ── Core: store as pending, open UPI app, show confirm ── */
+function launchUpiDeepLink(upiId, amount, category, date, name) {
+    const expense = { title: name || 'UPI Payment', amount, date, category, method:'upi', note:'UPI Payment', status:'pending' };
+    pendingPaymentData = expense;
+    fetch('/add-expense', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(expense) })
+        .then(r=>r.json()).then(d=>{ pendingPaymentId = d.id||null; }).catch(()=>{ pendingPaymentId = null; });
+
+    let upiLink = `upi://pay?pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=Payment`;
+    if (upiId) upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=Payment`;
+
+    closePayModal(); // close modal immediately before redirecting
+    window.location.href = upiLink;
+
+    setTimeout(() => {
+        document.getElementById('payConfirmOverlay').classList.add('open');
+    }, 6000);
+}
+
+/* ── Confirmation dialog ── */
+function confirmPayment(success) {
+    document.getElementById('payConfirmOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    if (success) {
+        if (pendingPaymentId !== null) {
+            fetch('/update-expense-status/' + pendingPaymentId, {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ status:'completed' })
+            })
+            .then(() => loadExpenses());
+        }
+        if (currentPendingId !== null) {
+            fetch('/delete-pending/' + currentPendingId, { method:'DELETE' })
+            .then(() => loadPendingPayments());
+        }
+
+        showToast('Payment confirmed! Expense saved ✓', 'success');
+
+    } else {
+        if (pendingPaymentId !== null) {
+            fetch('/delete-expense/' + pendingPaymentId, { method:'DELETE' })
+            .then(() => loadExpenses());
+        }
+
+        showToast('Payment not completed!', 'error');
+    }
+
+    loadExpenses();
+    // refresh graphs
+    if(typeof loadYearCharts!=='undefined') loadYearCharts();
+    if(typeof loadDonutChart!=='undefined') loadDonutChart();
+    if(typeof loadWeeklyChart!=='undefined') loadWeeklyChart();
+    loadTotalExpense();
+    loadSmartInsights();
+    loadSavingCard();
+    pendingPaymentId = null;
+    currentPendingId = null;
+}
+
+/* ════════════════════════
+   QR SCANNER
+════════════════════════ */
+function startQrScan() {
+    const box = document.getElementById('qrScannerBox');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Camera not supported on this browser.', 'error'); return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+        qrStream = stream;
+        let video = document.getElementById('qrVideo');
+        if (!video) {
+            video = document.createElement('video');
+            video.id = 'qrVideo';
+            video.setAttribute('playsinline', '');
+            video.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:12px;';
+            box.innerHTML = ''; box.appendChild(video);
+        }
+        video.srcObject = stream; video.play();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.getElementById('qrStartBtn').style.display = 'none';
+        document.getElementById('qrStopBtn').style.display  = '';
+        qrScanInterval = setInterval(() => {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = typeof jsQR !== 'undefined' ? jsQR(imgData.data, imgData.width, imgData.height) : null;
+                if (code) { stopQrScan(); parseQrData(code.data); }
+            }
+        }, 300);
+    }).catch(() => showToast('Could not access camera.', 'error'));
+}
+function stopQrScan() {
+    if (qrStream) { qrStream.getTracks().forEach(t=>t.stop()); qrStream = null; }
+    if (qrScanInterval) { clearInterval(qrScanInterval); qrScanInterval = null; }
+    const startBtn = document.getElementById('qrStartBtn');
+    const stopBtn  = document.getElementById('qrStopBtn');
+    if (startBtn) startBtn.style.display = '';
+    if (stopBtn)  stopBtn.style.display  = 'none';
+    const box = document.getElementById('qrScannerBox');
+    if (box) box.innerHTML = `
+        <div class="qr-corner tl"></div><div class="qr-corner tr"></div>
+        <div class="qr-corner bl"></div><div class="qr-corner br"></div>
+        <div class="qr-scan-line"></div>
+        <div class="qr-placeholder-text">
+            <i class="bi bi-camera fs-3 d-block mb-2" style="opacity:0.4;"></i>
+            <span style="font-size:0.82rem;opacity:0.5;">Camera preview will appear here</span>
+        </div>`;
+}
+function readQrFromFile(input) {
+    if (!input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const imgData = canvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+            const code = typeof jsQR !== 'undefined' ? jsQR(imgData.data, imgData.width, imgData.height) : null;
+            if (code) parseQrData(code.data);
+            else showToast('No QR code found in image.', 'error');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+function parseQrData(data) {
+    let upiId = '';
+    try { upiId = new URL(data).searchParams.get('pa') || ''; }
+    catch(e) { const m = data.match(/pa=([^&]+)/); if(m) upiId = decodeURIComponent(m[1]); }
+    if (!upiId) { showToast('Could not extract UPI ID from QR.', 'error'); return; }
+    document.getElementById('qrDetectedUpiId').textContent = upiId;
+    document.
+    showToast('QR scanned! Press "Use this UPI ID" to continue.', 'success');
+}
+
+/* ════════════════════════════════════════
+   MAKE PAYMENT MODAL (FAB — independent)
+════════════════════════════════════════ */
+let mpPendingId = null;
+
+function openMakePaymentModal() {
+    document.getElementById('makePayModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    hideFab();
+    document.getElementById('mpErr').style.display = 'none';
+    document.getElementById('mpUpiId').value   = '';
+    document.getElementById('mpAmount').value  = '';
+    document.getElementById('mpCategory').value = 'miscellaneous';
+    document.getElementById('mpDate').valueAsDate = new Date();
+    updateMpHelper();
+}
+function closeMakePayModal() {
+    document.getElementById('makePayModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    showFab();
+    // mpPendingId = null;
+}
+function updateMpHelper() {
+    const upi = document.getElementById('mpUpiId').value.trim();
+    const amt = document.getElementById('mpAmount').value;
+    document.getElementById('mpHelperUpi').textContent = upi || '—';
+    document.getElementById('mpHelperAmt').textContent = amt ? '₹' + parseFloat(amt).toLocaleString('en-IN') : '—';
+}
+function copyMpHelper(elId, btn) {
+    const txt = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+        btn.textContent = 'Copied!'; btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => showToast('Copy failed', 'error'));
+}
+
+function doMpOpenUpiApp() {
+    const upiId  = document.getElementById('mpUpiId').value.trim();
+    const amount = parseFloat(document.getElementById('mpAmount').value);
+    const cat    = document.getElementById('mpCategory').value;
+    const date   = document.getElementById('mpDate').value;
+    const errBox = document.getElementById('mpErr');
+    const errTxt = document.getElementById('mpErrTxt');
+    errBox.style.display = 'none';
+    if (!amount || amount < 1) {
+        errTxt.textContent = 'Please enter a valid amount.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    const name = upiId ? upiId.split('@')[0] : 'Merchant';
+    // Save as pending expense
+    const expense = {
+        title: name,
+        amount,
+        date,
+        category: cat,
+        method: 'upi',
+        note: 'Make Payment',
+        status: 'pending'
+    };
+    
+    // Build UPI link
+    let upiLink = `upi://pay?pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=Payment`;
+    if (upiId) {
+        upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=Payment`;
+    }
+    fetch('/add-expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expense)
+    })
+    .then(res => res.json())
+    .then(data => {
+        mpPendingId = data.id || null;
+        closeMakePayModal();
+        window.location.href = upiLink;
+        setTimeout(() => {
+            document.getElementById('mpConfirmOverlay').classList.add('open');
+        }, 6000);
+    })
+    .catch(() => {
+        mpPendingId = null;
+        showToast('Error saving expense', 'error');
+    });
+}
+function doMpScanQr() {
+    // Redirect to UPI app's native QR scanner
+    const upiLink = 'upi://pay';
+    closeMakePayModal();
+    window.location.href = upiLink;
+    setTimeout(() => {
+        document.getElementById('mpConfirmOverlay').classList.add('open');
+    }, 6000);
+}
+
+/* ── Make Payment confirmation (FAB flow) ── */
+function confirmMpPayment(success) {
+    document.getElementById('mpConfirmOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    showFab();
+    if (success) {
+        if (mpPendingId !== null) {
+            fetch('/update-expense-status/' + mpPendingId, {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ status:'completed' })
+            })
+            .then(() => loadExpenses());
+        }
+        showToast('Payment confirmed! Expense saved ✓', 'success');
+
+    } else {
+        if (mpPendingId !== null) {
+            fetch('/delete-expense/' + mpPendingId, { method:'DELETE' })
+            .then(() => loadExpenses());
+        }
+        showToast('Payment not completed!', 'error');
+    }
+
+    loadExpenses();
+    // refresh graphs
+    if(typeof loadYearCharts!=='undefined') loadYearCharts();
+    if(typeof loadDonutChart!=='undefined') loadDonutChart();
+    if(typeof loadWeeklyChart!=='undefined') loadWeeklyChart();
+    loadTotalExpense();
+    loadSmartInsights();
+    loadSavingCard();
+    mpPendingId = null;
+}
+
+// Load smart insights on dashboard
+function loadSmartInsights() {
+    fetch('/smart-insights')
+    .then(res => res.json())
+    .then(data => {
+
+        document.getElementById('insightPrediction').textContent =
+            "₹" + data.next_month_prediction;
+
+        document.getElementById('insightDaily').textContent =
+            "₹" + data.daily_forecast + "/day";
+
+        document.getElementById('insightCategory').textContent =
+            data.next_category;
+
+        const insightEl = document.getElementById('insightText');
+        insightEl.textContent = data.insight;
+
+        console.log(data.insight_type);
+
+
+        insightEl.classList.remove('insight-red', 'insight-green');
+
+        if (data.insight_type === "increase") {
+            insightEl.classList.add('insight-red');
+        } else if (data.insight_type === "decrease") {
+            insightEl.classList.add('insight-green');
+        }
+    });
+}
+
+function loadSavingCard() {
+    fetch('/monthly-saving')
+    .then(res => res.json())
+    .then(data => {
+
+        const saving = data.saving_card;
+
+        const remaining = saving.remaining || 0;
+        const progress  = saving.progress || 0;
+
+        const amountEl = document.getElementById("savingAmount");
+        const textEl   = document.getElementById("savingText");
+        const barEl    = document.getElementById("savingProgress");
+
+        // 🚨 IF BUDGET EXCEEDED
+        if (remaining === 0 && progress >= 100) {
+
+            const exceeded = saving.exceeded || 0;
+
+            amountEl.textContent = "Exceeded by ₹" + exceeded.toLocaleString('en-IN');
+            amountEl.style.color = "#ef4444"; // with red color
+
+            textEl.textContent = "100% budget reached";
+
+            barEl.style.width = "100%";
+            barEl.style.backgroundColor = "#ef4444";
+
+        } 
+        // ✅ NORMAL CASE
+        else {
+
+            amountEl.textContent =
+                "₹" + remaining.toLocaleString('en-IN');
+
+            amountEl.style.color = ""; // reset
+
+            textEl.textContent =
+                progress.toFixed(1) + "% of budget used";
+
+            barEl.style.width = progress + "%";
+            barEl.style.backgroundColor = ""; // reset
+        }
+
+    })
+    .catch(err => console.error(err));
+}
+
+</script>
+</body>
+</html>

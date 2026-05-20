@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>TrackYrBill – Expense Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #0b0f1a;
+    --surface: #141928;
+    --surface2: #1c2236;
+    --surface3: #222c42;
+    --accent: #4fffb0;
+    --accent2: #3b82f6;
+    --accent3: #f59e0b;
+    --red: #ff6b7a;
+    --text: #f0f4ff;
+    --muted: #8893b4;
+    --border: rgba(255,255,255,0.07);
+    --card-r: 18px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+/* ── COIN LOADER ── */
+#coin-loader {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+    transition: opacity .6s ease, visibility .6s ease;
+}
+#coin-loader.loader-hide { opacity: 0; visibility: hidden; }
+.coin-scene { perspective: 600px; animation: coinTravel 3s cubic-bezier(.4,0,.2,1) forwards; }
+.coin {
+    width: 90px; height: 90px; position: relative;
+    transform-style: preserve-3d;
+    animation: coinSpin 3s ease-in-out forwards;
+}
+.coin-face, .coin-back {
+    position: absolute; inset: 0; border-radius: 50%;
+    backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800;
+}
+.coin-face { background: var(--accent); color: #0b0f1a; font-size: 26px; box-shadow: 0 0 0 4px rgba(79,255,176,.25), 0 8px 32px rgba(79,255,176,.4); }
+.coin-back { background: #1a8c64; color: rgba(79,255,176,.7); font-size: 13px; font-weight: 700; letter-spacing: 1px; transform: rotateY(180deg); }
+.coin-shadow { width: 70px; height: 14px; border-radius: 50%; background: rgba(79,255,176,.18); filter: blur(6px); margin-top: 16px; animation: shadowPulse 3s cubic-bezier(.4,0,.2,1) forwards; }
+.loader-text { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; animation: textFadeIn 3s ease forwards; }
+.loader-dots span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin: 0 3px; animation: dotBounce .9s ease-in-out infinite; }
+.loader-dots span:nth-child(2) { animation-delay: .15s; }
+.loader-dots span:nth-child(3) { animation-delay: .3s; }
+
+@keyframes coinTravel {
+    0%   { transform: translateY(120vh); opacity: 0; }
+    8%   { opacity: 1; }
+    40%  { transform: translateY(0); opacity: 1; }
+    65%  { transform: translateY(0); opacity: 1; }
+    92%  { opacity: 1; }
+    100% { transform: translateY(120vh); opacity: 0; }
+}
+@keyframes coinSpin {
+    0%   { transform: rotateY(0deg); }
+    40%  { transform: rotateY(900deg); }
+    65%  { transform: rotateY(1080deg); }
+    100% { transform: rotateY(1980deg); }
+}
+@keyframes shadowPulse {
+    0%   { transform: scaleX(0.2); opacity: 0; }
+    40%  { transform: scaleX(1); opacity: 1; }
+    65%  { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(0.2); opacity: 0; }
+}
+@keyframes textFadeIn { 0%,30%{opacity:0} 45%{opacity:1} 60%{opacity:1} 80%,100%{opacity:0} }
+@keyframes dotBounce { 0%,100%{transform:translateY(0);opacity:.4} 50%{transform:translateY(-6px);opacity:1} }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:none} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(24px)}  to{opacity:1;transform:none} }
+@keyframes pulse    { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.12)} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes drawLine { from{stroke-dashoffset:500} to{stroke-dashoffset:0} }
+@keyframes fillBar  { from{height:0} to{height:var(--h)} }
+@keyframes spinDonut{ from{stroke-dashoffset:251} to{stroke-dashoffset:var(--offset)} }
+
+/* ── NAV ── */
+nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 6vw;
+    background: rgba(11,15,26,0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    animation: fadeDown .6s ease both;
+}
+.logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.logo span { color: var(--accent); }
+.nav-links { display: flex; gap: 28px; list-style: none; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+    background: var(--accent); color: #0b0f1a;
+    border: none; border-radius: 50px; padding: 10px 22px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    font-family: 'Syne', sans-serif;
+}
+.nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,255,176,.3); }
+
+/* ── HERO ── */
+.hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 120px 6vw 80px;
+    position: relative; overflow: hidden;
+}
+.hero-glow {
+    position: absolute; width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,255,176,.1) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    pointer-events: none; animation: pulse 4s ease-in-out infinite;
+}
+.hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(79,255,176,.1); border: 1px solid rgba(79,255,176,.25);
+    border-radius: 50px; padding: 6px 16px; font-size: 13px;
+    color: var(--accent); font-weight: 500; margin-bottom: 28px;
+    animation: fadeUp .6s .1s both;
+}
+.hero-tag::before {
+    content:''; width:7px; height:7px; border-radius:50%;
+    background:var(--accent); display:inline-block;
+    animation: blink 1.2s ease-in-out infinite;
+}
+h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(42px, 8vw, 82px);
+    font-weight: 800; line-height: 1.05; letter-spacing: -2px;
+    animation: fadeUp .6s .2s both;
+}
+h1 em { font-style: normal; color: var(--accent); }
+.hero-sub {
+    margin-top: 20px; max-width: 520px; color: var(--muted);
+    font-size: 17px; line-height: 1.65;
+    animation: fadeUp .6s .3s both;
+}
+.hero-actions {
+    margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;
+    justify-content: center; animation: fadeUp .6s .4s both;
+}
+.btn-primary {
+    background: var(--accent); color: #0b0f1a; border: none;
+    border-radius: 50px; padding: 16px 36px; font-size: 16px;
+    font-weight: 700; cursor: pointer; transition: transform .15s, box-shadow .2s;
+    font-family: 'Syne', sans-serif;
+}
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(79,255,176,.35); }
+.btn-outline {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 50px;
+    padding: 16px 36px; font-size: 16px; font-weight: 500;
+    cursor: pointer; transition: border-color .2s, background .2s;
+}
+.btn-outline:hover { border-color: rgba(255,255,255,.3); background: var(--surface); }
+
+/* ══════════════════════
+   DASHBOARD MOCKUP
+   ══════════════════════ */
+.mockup-wrap {
+    margin-top: 64px; width: 100%; max-width: 1040px;
+    animation: fadeUp .8s .5s both;
+}
+.mockup {
+    background: #0d1117; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0,0,0,.8);
+}
+.mockup-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 18px; background: #161b22;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dot { width: 11px; height: 11px; border-radius: 50%; }
+.dot.r { background: #ff5f57; }
+.dot.y { background: #febc2e; }
+.dot.g { background: #28c840; }
+
+/* Dashboard shell */
+.dash-shell { display: flex; min-height: 540px; }
+
+/* Sidebar */
+.dash-sidebar {
+    width: 170px; flex-shrink: 0;
+    background: #0d1117;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 18px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.dash-brand {
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+    margin-bottom: 4px; padding: 0 4px;
+    color: var(--text);
+}
+.dash-brand em { font-style: normal; color: var(--accent); }
+.dash-brand-sub {
+    font-size: 9px; color: var(--muted); padding: 0 4px;
+    letter-spacing: .5px; margin-bottom: 12px;
+}
+.dash-nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 11px; border-radius: 10px;
+    font-size: 12px; color: var(--muted); cursor: pointer;
+    transition: background .15s;
+}
+.dash-nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.dash-nav-item.active { background: rgba(255,255,255,0.07); color: var(--text); }
+.dash-nav-item .nav-icon { font-size: 13px; }
+.dash-sidebar-spacer { flex: 1; }
+.dash-logout {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 11px; border-radius: 10px;
+    font-size: 12px; color: var(--muted); cursor: pointer;
+}
+
+/* Main */
+.dash-main {
+    flex: 1; overflow: hidden; overflow-y: auto;
+    padding: 14px 14px 14px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: #0d1117;
+    scrollbar-width: none;
+}
+.dash-main::-webkit-scrollbar { display: none; }
+
+/* Cards */
+.dash-card {
+    background: #161b22; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 14px;
+}
+.dash-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+}
+.dash-card-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.1px;
+    text-transform: uppercase; color: #7c8db5;
+    display: flex; align-items: center; gap: 5px;
+}
+.dash-year-badge {
+    background: #1e2533; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px; padding: 3px 9px;
+    font-size: 10px; color: var(--text); font-weight: 600;
+    cursor: pointer;
+}
+
+/* Line chart */
+.line-chart-wrap { width: 100%; height: 95px; position: relative; }
+.line-chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+.chart-line {
+    fill: none; stroke: #818cf8; stroke-width: 2;
+    stroke-dasharray: 800; animation: drawLine 2s .8s ease both;
+}
+.chart-area { fill: url(#areaGrad); }
+.x-labels {
+    display: flex; justify-content: space-between;
+    padding: 0 2px; margin-top: 4px;
+}
+.x-labels span { font-size: 8.5px; color: var(--muted); }
+
+/* Row 2: 3-col */
+.dash-row2 { display: grid; grid-template-columns: 1.15fr 1fr 0.85fr; gap: 10px; }
+
+/* Donut */
+.donut-wrap { position: relative; width: 90px; height: 90px; margin: 4px auto 6px; }
+.donut-wrap svg { transform: rotate(-90deg); }
+.donut-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 7.5px; color: var(--muted); text-align: center; line-height: 1.3;
+}
+.donut-center strong { font-size: 11px; color: var(--text); font-family: 'Syne', sans-serif; }
+.donut-cat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2px; font-size: 8.5px; gap: 6px;
+}
+.donut-cat-label { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.donut-cat-pct { color: var(--text); font-weight: 600; }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cat-select {
+    background: #1e2533; border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text); border-radius: 6px; padding: 2px 6px;
+    font-size: 9px; cursor: pointer; outline: none;
+}
+
+/* Weekly bars */
+.week-bars { display: flex; align-items: flex-end; gap: 5px; height: 80px; padding-bottom: 16px; position: relative; }
+.w-bar {
+    flex: 1; border-radius: 3px 3px 0 0;
+    position: relative; min-width: 0;
+    transition: opacity .2s;
+}
+.w-bar span {
+    position: absolute; bottom: -14px; left: 50%;
+    transform: translateX(-50%); font-size: 7.5px; color: var(--muted); white-space: nowrap;
+}
+.week-legend { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--muted); margin-bottom: 8px; }
+.week-legend-line { width: 18px; height: 2px; background: #818cf8; border-radius: 2px; }
+
+/* Right col: expenditure + savings */
+.exp-card-new {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 0;
+}
+.exp-label-new { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.exp-amount-new { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+.exp-icon-new {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+}
+
+/* Savings goal */
+.savings-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.savings-amount { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+.progress-track {
+    background: rgba(255,255,255,.08); border-radius: 10px;
+    height: 6px; margin: 8px 0 4px; overflow: hidden;
+}
+.progress-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg,#3b82f6,#818cf8); }
+.progress-caption { font-size: 9px; color: var(--muted); }
+
+/* Smart Insights row */
+.dash-insights { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.insight-card {
+    background: #161b22; border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 10px 11px;
+}
+.insight-icon { font-size: 14px; margin-bottom: 6px; }
+.insight-tag { font-size: 8px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #7c8db5; margin-bottom: 4px; }
+.insight-val { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.insight-sub { font-size: 8.5px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
+.insight-val.danger { color: #f87171; }
+
+/* Pending payments */
+.pending-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+}
+.pending-sub { font-size: 8.5px; color: var(--muted); margin-bottom: 8px; }
+.pending-add-btn {
+    background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3);
+    color: #818cf8; border-radius: 6px; padding: 3px 10px;
+    font-size: 9px; font-weight: 600; cursor: pointer;
+}
+.pending-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #1e2533; border-radius: 8px; padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.pending-icon {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: #2a3347; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+}
+.pending-name { font-size: 11px; font-weight: 500; color: var(--text); }
+.pending-meta { font-size: 8.5px; color: var(--muted); margin-top: 1px; }
+.pending-amount { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: #818cf8; margin-left: auto; }
+
+/* Demo toggle button in mockup */
+.demo-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.25);
+    color: #818cf8; border-radius: 7px; padding: 4px 11px;
+    font-size: 10px; font-weight: 600; cursor: pointer;
+    transition: background .2s;
+}
+.demo-btn:hover { background: rgba(59,130,246,.22); }
+
+/* ── EXPENSES MODAL ── */
+.modal-overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease;
+    border-radius: 20px;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal-box {
+    background: #0d1117; border-radius: 14px;
+    width: 88%; max-width: 520px; max-height: 85%;
+    overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0,0,0,.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    transform: translateY(16px);
+    transition: transform .3s ease;
+}
+.modal-overlay.show .modal-box { transform: translateY(0); }
+.modal-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 0 14px; background: #161b22;
+    position: relative; flex-shrink: 0;
+}
+.modal-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 14px; font-size: 11px; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: color .2s; white-space: nowrap;
+}
+.modal-tab.active { color: var(--text); border-bottom-color: #818cf8; }
+.modal-close {
+    margin-left: auto; padding: 0 4px;
+    color: var(--muted); font-size: 17px; cursor: pointer;
+    display: flex; align-items: center;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { overflow-y: auto; padding: 10px 14px; flex: 1; }
+.txn-item {
+    display: flex; align-items: center; gap: 11px;
+    background: #161b22; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 7px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.txn-item-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #1e2533;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+}
+.txn-item-info { flex: 1; min-width: 0; }
+.txn-item-name { font-size: 12px; font-weight: 500; }
+.txn-item-meta { font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+.txn-item-amount { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; color: var(--red); flex-shrink: 0; }
+.txn-item-amount.pos { color: var(--accent); }
+
+/* ── STATS STRIP ── */
+.stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden;
+    margin: 0 0 0 0;
+}
+.strip-item {
+    padding: 28px 24px; text-align: center;
+    border-right: 1px solid var(--border);
+}
+.strip-item:last-child { border-right: none; }
+.strip-num { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: var(--accent); }
+.strip-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* ── SECTIONS ── */
+section { padding: 100px 6vw; }
+.section-tag { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 12px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: clamp(30px,4vw,46px); font-weight: 800; line-height: 1.1; letter-spacing: -1px; margin-bottom: 48px; }
+
+/* ── FEATURES ── */
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 28px;
+    transition: border-color .2s, transform .2s;
+}
+.feat-card:hover { border-color: rgba(79,255,176,.2); transform: translateY(-4px); }
+.feat-icon { font-size: 28px; margin-bottom: 16px; }
+.feat-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.feat-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ── HOW IT WORKS ── */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.step { text-align: center; padding: 20px; }
+.step-num {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(79,255,176,.1); border: 1px solid rgba(79,255,176,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+    color: var(--accent); margin: 0 auto 16px;
+}
+.step-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.step-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ── CTA BAND ── */
+.cta-band {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 24px; padding: 64px 48px;
+    text-align: center; margin: 0 6vw 80px;
+}
+.cta-band h2 { font-family: 'Syne', sans-serif; font-size: clamp(26px,3.5vw,42px); font-weight: 800; margin-bottom: 16px; }
+.cta-band p { color: var(--muted); font-size: 16px; margin-bottom: 32px; }
+
+/* ── FOOTER ── */
+footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 6vw; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--muted);
+}
+
+/* ── REVEAL ── */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 767px) {
+    .nav-links { display: none; }
+    .features-grid, .steps { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: 1fr 1fr; }
+    .dash-sidebar { display: none; }
+    .dash-row2 { grid-template-columns: 1fr 1fr; }
+    .dash-insights { grid-template-columns: 1fr 1fr; }
+    footer { flex-direction: column; text-align: center; gap: 10px; }
+}
+@media (max-width: 480px) {
+    .dash-row2 { grid-template-columns: 1fr; }
+    .dash-insights { grid-template-columns: 1fr 1fr; }
+    .cta-band { padding: 36px 20px; }
+}
+
+/* ══════════════════════
+   DASHBOARD LIGHT MODE
+   scoped to #dashShell.light
+   ══════════════════════ */
+#dashShell { transition: background .35s ease; }
+
+/* Shell backgrounds */
+#dashShell.light { background: #f0f4ff; }
+#dashShell.light .dash-sidebar {
+    background: #ffffff;
+    border-right: 1px solid rgba(0,0,0,0.08);
+}
+#dashShell.light .dash-brand { color: #0b0f1a; }
+#dashShell.light .dash-brand-sub { color: #6b7280; }
+#dashShell.light .dash-nav-item { color: #6b7280; }
+#dashShell.light .dash-nav-item:hover,
+#dashShell.light .dash-nav-item.active { background: #f0f4ff; color: #0b0f1a; }
+#dashShell.light .dash-logout { color: #9ca3af; }
+
+#dashShell.light .dash-main { background: #f0f4ff; }
+
+/* Cards */
+#dashShell.light .dash-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.07);
+}
+#dashShell.light .dash-card-title { color: #4f6080; }
+#dashShell.light .dash-year-badge {
+    background: #f0f4ff;
+    border: 1px solid rgba(0,0,0,0.1);
+    color: #0b0f1a;
+}
+
+/* Chart text & grid */
+#dashShell.light .x-labels span { color: #9ca3af; }
+#dashShell.light .line-chart-wrap svg text { fill: #c0c8d8 !important; }
+#dashShell.light .line-chart-wrap svg line { stroke: rgba(0,0,0,.05) !important; }
+
+/* Donut labels */
+#dashShell.light .donut-center { color: #9ca3af; }
+#dashShell.light .donut-center strong { color: #0b0f1a; }
+#dashShell.light .donut-cat-label { color: #6b7280; }
+#dashShell.light .donut-cat-pct { color: #0b0f1a; }
+#dashShell.light .cat-select {
+    background: #f0f4ff;
+    border: 1px solid rgba(0,0,0,0.1);
+    color: #0b0f1a;
+}
+
+/* Weekly bar legend */
+#dashShell.light .week-legend { color: #9ca3af; }
+
+/* Right col */
+#dashShell.light .exp-label-new { color: #6b7280; }
+#dashShell.light .exp-amount-new { color: #0b0f1a; }
+#dashShell.light .exp-icon-new {
+    background: rgba(59,130,246,.1);
+    border: 1px solid rgba(59,130,246,.2);
+}
+#dashShell.light .savings-label { color: #6b7280; }
+#dashShell.light .savings-amount { color: #0b0f1a; }
+#dashShell.light .progress-track { background: rgba(0,0,0,.08); }
+#dashShell.light .progress-caption { color: #9ca3af; }
+
+/* Insights */
+#dashShell.light .insight-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.07);
+}
+#dashShell.light .insight-tag { color: #4f6080; }
+#dashShell.light .insight-val { color: #0b0f1a; }
+#dashShell.light .insight-sub { color: #9ca3af; }
+#dashShell.light .insight-val.danger { color: #dc2626; }
+
+/* Pending */
+#dashShell.light .pending-sub { color: #9ca3af; }
+#dashShell.light .pending-add-btn {
+    background: rgba(59,130,246,.08);
+    border: 1px solid rgba(59,130,246,.2);
+    color: #5b72e8;
+}
+#dashShell.light .pending-item {
+    background: #f5f7ff;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+#dashShell.light .pending-icon { background: #e8ecff; }
+#dashShell.light .pending-name { color: #0b0f1a; }
+#dashShell.light .pending-meta { color: #9ca3af; }
+#dashShell.light .pending-amount { color: #5b72e8; }
+
+/* Demo btn */
+#dashShell.light ~ * .demo-btn,
+.mockup.light-mockup .demo-btn { color: #5b72e8; }
+
+/* Scrollbar in light */
+#dashShell.light .dash-main { scrollbar-color: #d1d5db transparent; }
+    </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="coin-loader">
+    <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="coin-scene">
+            <div class="coin">
+                <div class="coin-face">₹</div>
+                <div class="coin-back">TyrB</div>
+            </div>
+        </div>
+        <div class="coin-shadow"></div>
+    </div>
+    <div class="loader-brand">loading <strong>trackyrbill</strong></div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- NAV -->
+<nav>
+    <div class="logo"><strong>trackyr</strong><span class="logo-accent">bill</span></div>
+    <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it works</a></li>
+    </ul>
+    <button class="nav-cta" onclick="goToLogin()">Login / Sign Up</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-tag">Smart Expense Tracking</div>
+    <h1>Make Your <em>Bill</em><br/><!--<h1>Trackable With  <em>trackyrbill.</em><br/>---><span class="word-dim">Trackable With </span>trackyr<em>bill</em>.</h1>
+    <p class="hero-sub">trackyrbill gives you a real time view of your finances, helping you track expenses, gain insights, and manage your spending with ease.</p>
+    <div class="hero-actions">
+        <!---<button class="btn-primary">Start For Free</button>--->
+        <button class="btn-outline" id="demoToggle">👁 Preview Dashboard</button>
+    </div>
+
+    <!-- ── FULL DASHBOARD MOCKUP ── -->
+    <div class="mockup-wrap" id="dashboardPreview">
+        <div class="mockup" style="position:relative;">
+            <!-- Browser chrome -->
+            <div class="mockup-bar">
+                <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                <span style="margin-left:auto;">
+                    <span class="demo-btn" id="expensesBtn">📋 Expenses</span>
+                </span>
+            </div>
+
+            <!-- Dashboard Shell -->
+            <div class="dash-shell" id="dashShell">
+
+                <!-- Sidebar -->
+                <div class="dash-sidebar">
+                    <div class="dash-brand">trackyr<em>bill</em></div>
+                    <div class="dash-brand-sub">Dashboard</div>
+                    <div class="dash-nav-item active"><span class="nav-icon">👤</span> Profile</div>
+                    <div class="dash-nav-item" id="themeToggleBtn"><span class="nav-icon" id="themeIcon">🌙</span> <span id="themeLabel">Toggle Theme</span></div>
+                    <div class="dash-nav-item" style="color:#f87171;"><span class="nav-icon">🧾</span> Expenses</div>
+                    <div class="dash-sidebar-spacer"></div>
+                    <div class="dash-logout"><span class="nav-icon">↩</span> Logout</div>
+                </div>
+
+                <!-- Main area -->
+                <div class="dash-main">
+
+                    <!-- Row 1: Monthly Spending Trend -->
+                    <div class="dash-card">
+                        <div class="dash-card-header">
+                            <div class="dash-card-title">📈 Monthly Spending Trend</div>
+                            <div class="dash-year-badge">2026 ▾</div>
+                        </div>
+                        <div style="font-size:9.5px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+                            Monthly Spending Trend
+                            <span style="display:inline-flex;align-items:center;gap:4px;">
+                                <span style="display:inline-block;width:18px;height:2px;background:#818cf8;border-radius:2px;"></span>
+                                Monthly Spending (₹)
+                            </span>
+                        </div>
+                        <div class="line-chart-wrap">
+                            <svg viewBox="0 0 600 90" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#818cf8" stop-opacity=".22"/>
+                                        <stop offset="100%" stop-color="#818cf8" stop-opacity=".01"/>
+                                    </linearGradient>
+                                </defs>
+                                <!-- Y-axis labels -->
+                                <text x="0" y="12" fill="#4a5568" font-size="7">12,000</text>
+                                <text x="0" y="28" fill="#4a5568" font-size="7">10,000</text>
+                                <text x="0" y="44" fill="#4a5568" font-size="7">8,000</text>
+                                <text x="0" y="57" fill="#4a5568" font-size="7">6,000</text>
+                                <text x="0" y="68" fill="#4a5568" font-size="7">4,000</text>
+                                <text x="0" y="78" fill="#4a5568" font-size="7">2,000</text>
+                                <text x="0" y="88" fill="#4a5568" font-size="7">0</text>
+                                <!-- Grid lines -->
+                                <line x1="32" y1="8"  x2="600" y2="8"  stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="25" x2="600" y2="25" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="42" x2="600" y2="42" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="55" x2="600" y2="55" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="66" x2="600" y2="66" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="76" x2="600" y2="76" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <line x1="32" y1="86" x2="600" y2="86" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+                                <!-- Area fill - peak at Apr (col 4 of 12) -->
+                                <path class="chart-area" d="M32,86 L32,86 L80,86 L130,86 L178,55 L228,12 L278,82 L328,84 L378,84 L428,84 L478,84 L528,84 L578,84 L600,84 L600,90 L32,90 Z"/>
+                                <!-- Line -->
+                                <polyline class="chart-line" points="32,86 80,86 130,84 178,55 228,12 278,82 328,84 378,84 428,84 478,84 528,84 578,84"/>
+                                <!-- Dots -->
+                                <circle cx="32"  cy="86" r="2.5" fill="#818cf8"/>
+                                <circle cx="80"  cy="86" r="2.5" fill="#818cf8"/>
+                                <circle cx="130" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="178" cy="55" r="2.5" fill="#818cf8"/>
+                                <circle cx="228" cy="12" r="3.5" fill="#818cf8" stroke="#fff" stroke-width="1.2"/>
+                                <circle cx="278" cy="82" r="2.5" fill="#818cf8"/>
+                                <circle cx="328" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="378" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="428" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="478" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="528" cy="84" r="2.5" fill="#818cf8"/>
+                                <circle cx="578" cy="84" r="2.5" fill="#818cf8"/>
+                            </svg>
+                        </div>
+                        <div class="x-labels">
+                            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
+                            <span>May</span><span>Jun</span><span>Jul</span><span>Aug</span>
+                            <span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Category | Weekly | Right col -->
+                    <div class="dash-row2">
+
+                        <!-- Category Breakdown -->
+                        <div class="dash-card">
+                            <div class="dash-card-header">
+                                <div class="dash-card-title">🍩 Category Breakdown</div>
+                                <select class="cat-select"><option>All</option><option>Month</option></select>
+                            </div>
+                            <div style="font-size:9px;color:var(--muted);text-align:center;margin-bottom:4px;">Category-wise Expense Distribution</div>
+                            <div class="donut-wrap">
+                                <svg viewBox="0 0 90 90" width="90" height="90">
+                                    <circle cx="45" cy="45" r="32" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="15"/>
+                                    <!-- transport (indigo) ~45% -->
+                                    <circle cx="45" cy="45" r="32" fill="none" stroke="#818cf8" stroke-width="15"
+                                        stroke-dasharray="90 201" stroke-dashoffset="0"/>
+                                    <!-- food (cyan) ~20% -->
+                                    <circle cx="45" cy="45" r="32" fill="none" stroke="#06b6d4" stroke-width="15"
+                                        stroke-dasharray="40 251" stroke-dashoffset="-90"/>
+                                    <!-- miscellaneous (amber) ~35% -->
+                                    <circle cx="45" cy="45" r="32" fill="none" stroke="#f59e0b" stroke-width="15"
+                                        stroke-dasharray="71 220" stroke-dashoffset="-130"/>
+                                </svg>
+                                <div class="donut-center"><strong>₹15.6k</strong><span>total</span></div>
+                            </div>
+                            <!-- Legend rows -->
+                            <div style="margin-top:6px;">
+                                <div class="donut-cat-row">
+                                    <div class="donut-cat-label"><div class="legend-dot" style="background:#818cf8"></div>transport</div>
+                                    <div class="donut-cat-pct">45%</div>
+                                </div>
+                                <div class="donut-cat-row">
+                                    <div class="donut-cat-label"><div class="legend-dot" style="background:#06b6d4"></div>food</div>
+                                    <div class="donut-cat-pct">20%</div>
+                                </div>
+                                <div class="donut-cat-row">
+                                    <div class="donut-cat-label"><div class="legend-dot" style="background:#f59e0b"></div>miscellaneous</div>
+                                    <div class="donut-cat-pct">35%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Spending Bar Chart -->
+                        <div class="dash-card" style="display:flex;flex-direction:column;">
+                            <div class="week-legend">
+                                <div class="week-legend-line"></div>
+                                Weekly Spending (₹)
+                            </div>
+                            <!-- Y axis + bars together -->
+                            <div style="display:flex;gap:6px;flex:1;align-items:flex-end;">
+                                <div style="display:flex;flex-direction:column;justify-content:space-between;height:80px;padding-bottom:16px;font-size:7px;color:#4a5568;text-align:right;min-width:22px;">
+                                    <span>9,000</span><span>7,000</span><span>5,000</span><span>3,000</span><span>1,000</span><span>0</span>
+                                </div>
+                                <div class="week-bars" style="flex:1;">
+                                    <div class="w-bar" style="height:4%;background:rgba(129,140,248,.3)"><span>Mon</span></div>
+                                    <div class="w-bar" style="height:4%;background:rgba(129,140,248,.3)"><span>Tue</span></div>
+                                    <div class="w-bar" style="height:6%;background:rgba(129,140,248,.35)"><span>Wed</span></div>
+                                    <div class="w-bar" style="height:30%;background:#818cf8"><span>Thu</span></div>
+                                    <div class="w-bar" style="height:10%;background:#ef4444"><span>Fri</span></div>
+                                    <div class="w-bar" style="height:8%;background:rgba(241,163,62,.5)"><span>Sat</span></div>
+                                    <div class="w-bar" style="height:100%;background:#f59e0b"><span>Sun</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right col: Expenditure + Savings Goal -->
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <!-- Expenditure -->
+                            <div class="dash-card">
+                                <div class="exp-label-new">Expenditure</div>
+                                <div class="exp-card-new" style="margin-top:6px;">
+                                    <div class="exp-amount-new">₹15,610</div>
+                                    <div class="exp-icon-new">₹</div>
+                                </div>
+                            </div>
+                            <!-- Monthly Savings Goal -->
+                            <div class="dash-card">
+                                <div class="savings-label">Monthly Budget</div>
+                                <div class="savings-amount">₹4.4k</div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width:70.5%"></div>
+                                </div>
+                                <div class="progress-caption">70.5% of budget reached</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Row 3: Smart Insights -->
+                    <div class="dash-card">
+                        <div class="dash-card-title" style="margin-bottom:10px;">✨ Smart Insights</div>
+                        <div class="dash-insights">
+                            <div class="insight-card">
+                                <div class="insight-icon">📈</div>
+                                <div class="insight-tag">Next Month Prediction</div>
+                                <div class="insight-val">₹16130</div>
+                                <div class="insight-sub">Estimated based on trend</div>
+                            </div>
+                            <div class="insight-card">
+                                <div class="insight-icon">📅</div>
+                                <div class="insight-tag">Daily Spending Forecast</div>
+                                <div class="insight-val">₹400.26/day</div>
+                                <div class="insight-sub">Average per day this month</div>
+                            </div>
+                            <div class="insight-card">
+                                <div class="insight-icon">🏷</div>
+                                <div class="insight-tag">Next Likely Category</div>
+                                <div class="insight-val">transport</div>
+                                <div class="insight-sub">Your top spending category</div>
+                            </div>
+                            <div class="insight-card">
+                                <div class="insight-icon">🔴</div>
+                                <div class="insight-tag">Insight</div>
+                                <div class="insight-val danger" style="font-size:11px;line-height:1.3;">You spent 110.3% more than last month</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Pending Payments -->
+                    <div class="dash-card">
+                        <div class="pending-header">
+                            <div class="dash-card-title">⏳ Pending Payments</div>
+                            <div class="pending-add-btn">+ Add</div>
+                        </div>
+                        <div class="pending-sub">Tap to pay · Hover to delete</div>
+                        <div class="pending-item">
+                            <div class="pending-icon">💳</div>
+                            <div>
+                                <div class="pending-name">Mr Sahani</div>
+                                <div class="pending-meta">25 Apr 2026 · ₹599</div>
+                            </div>
+                            <div class="pending-amount">₹599</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Expenses Modal -->
+            <div class="modal-overlay" id="expensesModal">
+                <div class="modal-box">
+                    <div class="modal-tabs">
+                        <div class="modal-tab active">🕐 History of Expenses</div>
+                        <div class="modal-tab">📷 Scan Receipt</div>
+                        <div class="modal-tab">＋ Add Expense</div>
+                        <div class="modal-close" id="modalClose">✕</div>
+                    </div>
+                    <div class="modal-body">
+                        <div class="txn-item">
+                            <div class="txn-item-icon">🚐</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">Merchant</div>
+                                <div class="txn-item-meta">24 Mar 2026 · UPI · UPI Payment</div>
+                            </div>
+                            <div class="txn-item-amount">−₹200</div>
+                        </div>
+                        <div class="txn-item">
+                            <div class="txn-item-icon">📦</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">6371427793</div>
+                                <div class="txn-item-meta">24 Mar 2026 · UPI · UPI Payment</div>
+                            </div>
+                            <div class="txn-item-amount">−₹20</div>
+                        </div>
+                        <div class="txn-item">
+                            <div class="txn-item-icon">🎬</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">Merchant</div>
+                                <div class="txn-item-meta">22 Mar 2026 · UPI · UPI Payment</div>
+                            </div>
+                            <div class="txn-item-amount">−₹30,800</div>
+                        </div>
+                        <div class="txn-item">
+                            <div class="txn-item-icon">🎬</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">Merchant</div>
+                                <div class="txn-item-meta">21 Mar 2026 · UPI · UPI Payment</div>
+                            </div>
+                            <div class="txn-item-amount">−₹5,000</div>
+                        </div>
+                        <div class="txn-item">
+                            <div class="txn-item-icon">💡</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">6th Semester fee instalment 3.</div>
+                                <div class="txn-item-meta">20 Mar 2026 · UPI</div>
+                            </div>
+                            <div class="txn-item-amount">−₹12,000</div>
+                        </div>
+                        <div class="txn-item">
+                            <div class="txn-item-icon">💼</div>
+                            <div class="txn-item-info">
+                                <div class="txn-item-name">Salary Credit</div>
+                                <div class="txn-item-meta">1 Mar 2026 · Bank Transfer</div>
+                            </div>
+                            <div class="txn-item-amount pos">+₹75,000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="section-tag">Features</div>
+    <div class="section-title reveal">What We Offer </div>
+    <div class="features-grid">
+        <div class="feat-card reveal">
+            <div class="feat-icon">🔐</div>
+            <div class="feat-title">User Authentication System</div>
+            <div class="feat-desc">Secure login and registration for safe, easy, personalized access</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">💼</div>
+            <div class="feat-title">Expense Management</div>
+            <div class="feat-desc">Add and manage expenses with details like title, amount, date, category, and payment method.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">📸</div>
+            <div class="feat-title">Receipt Scanning (OCR-based)</div>
+            <div class="feat-desc">Upload receipts with OCR to automatically extract expense details and reduce manual entry.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">📊</div>
+            <div class="feat-title">Data Visualisation</div>
+            <div class="feat-desc">Visualize spending with charts like monthly trends, category distribution, and weekly analysis.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">📜</div>
+            <div class="feat-title">Expense History</div>
+            <div class="feat-desc">View all transactions in a structured timeline with options to delete when needed.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">🧠</div>
+            <div class="feat-title">Smart Insights (Predictive Analysis)</div>
+            <div class="feat-desc">Get smart insights like expense predictions, spending trends, and category analysis.
+        </div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">💰</div>
+            <div class="feat-title">Monthly Budget Tracking</div>
+            <div class="feat-desc">Set monthly budgets and track spending with real-time usage and remaining balance.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">💳</div>
+            <div class="feat-title">Make Payment Feature (UPI Integration)</div>
+            <div class="feat-desc">Make quick payments via UPI directly from the dashboard using deep linking.</div>
+        </div>
+        <div class="feat-card reveal">
+            <div class="feat-icon">📅</div>
+            <div class="feat-title">Pending Payments Management</div>
+            <div class="feat-desc">Manage pending payments with a “To Be Paid” list and quick payment options.</div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="background:var(--surface);border-radius:24px;margin:0 6vw;">
+    <div class="section-tag">How It Works</div>
+    <div class="section-title reveal">Up and running<br/>in 3 simple steps.</div>
+    <div class="steps">
+        <div class="step reveal">
+            <div class="step-num">1</div>
+            <div class="step-title">Create Your Account</div>
+            <!--<div class="step-desc">Sign up for free in under 60 seconds — no credit card required.</div>-->
+        </div>
+        <div class="step reveal">
+            <div class="step-num">2</div>
+            <div class="step-title">Add Your Expenses</div>
+            <!---<div class="step-desc">Log transactions manually, scan receipts, or connect your bank for automatic imports.</div>-->
+        </div>
+        <div class="step reveal">
+            <div class="step-num">3</div>
+            <div class="step-title">Gain Insights</div>
+            <!--<div class="step-desc">View reports, spot patterns, hit savings goals, and take control of your money.</div>-->
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<div style="margin-top:80px;">
+    <div class="cta-band reveal">
+        <h2>Ready to take control<br/>of your money?</h2>
+        <!---<p>Join 50,000+ users already spending smarter with trackyrbill.</p>--->
+        <button class="btn-primary" onclick="goToLogin()">Get Started.</button>
+    </div>
+</div>
+
+<!-- FOOTER 
+<footer>
+    <div class="logo" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">trackyr<span style="color:var(--accent)">bill</span></div>
+    <span>© 2026 trackyrbill. All rights reserved.</span>
+    <div style="display:flex;gap:20px;">
+        <a href="#" style="color:var(--muted);text-decoration:none;font-size:13px;">Privacy</a>
+        <a href="#" style="color:var(--muted);text-decoration:none;font-size:13px;">Terms</a>
+        <a href="#" style="color:var(--muted);text-decoration:none;font-size:13px;">Contact</a>
+    </div>
+</footer>-->
+
+
+<!-- FOOTER -->
+<footer style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:20px 0;">
+    
+    <div class="logo" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">
+        trackyr<span style="color:var(--accent)">bill</span> : Make your bill trackable
+    </div>
+</footer>
+
+
+
+
+<script>
+// Coin loader
+window.addEventListener('load', () => {
+    const loader = document.getElementById('coin-loader');
+    if (!loader) return;
+    setTimeout(() => {
+        loader.classList.add('loader-hide');
+        setTimeout(() => loader.remove(), 600);
+    }, 3000);
+});
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+            setTimeout(() => entry.target.classList.add('visible'), i * 80);
+            observer.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Expenses modal
+const modal     = document.getElementById('expensesModal');
+const openBtn   = document.getElementById('expensesBtn');
+const closeBtn  = document.getElementById('modalClose');
+const demoBtn   = document.getElementById('demoToggle');
+
+function openModal()  { modal.classList.add('show'); }
+function closeModal() { modal.classList.remove('show'); }
+
+openBtn.addEventListener('click', openModal);
+closeBtn.addEventListener('click', closeModal);
+demoBtn.addEventListener('click', () => {
+    document.getElementById('dashboardPreview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+// Modal tab switching
+document.querySelectorAll('.modal-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+    });
+});
+
+// Dashboard theme toggle (dark ↔ light)
+const dashShell    = document.getElementById('dashShell');
+const themeToggle  = document.getElementById('themeToggleBtn');
+const themeIcon    = document.getElementById('themeIcon');
+const themeLabel   = document.getElementById('themeLabel');
+let isLight = false;
+
+themeToggle.addEventListener('click', () => {
+    isLight = !isLight;
+    dashShell.classList.toggle('light', isLight);
+    themeIcon.textContent  = isLight ? '☀️' : '🌙';
+    themeLabel.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+
+    // also flip the mockup border/bg subtly
+    const mockup = dashShell.closest('.mockup');
+    if (mockup) {
+        mockup.style.background      = isLight ? '#f0f4ff' : '';
+        mockup.style.borderColor     = isLight ? 'rgba(0,0,0,0.1)' : '';
+    }
+    const mockupBar = mockup ? mockup.querySelector('.mockup-bar') : null;
+    if (mockupBar) {
+        mockupBar.style.background   = isLight ? '#ffffff' : '';
+        mockupBar.style.borderBottom = isLight ? '1px solid rgba(0,0,0,0.08)' : '';
+    }
+});
+
+function goToLogin() {
+    window.location.href = "/red-login";
+}
+</script>
+</body>
+</html>
